@@ -1,0 +1,42 @@
+# Reverse proxy for phone access to the dashboard.
+#
+# Why this is needed at all: Web Push requires a secure context. The browser
+# will refuse to register a service worker over plain HTTP on anything other
+# than localhost, so without TLS the PWA channel simply cannot work. Caddy
+# obtains and renews a certificate automatically.
+#
+#   sudo apt install caddy
+#   sudo cp deploy/caddy/Caddyfile /etc/caddy/Caddyfile   # edit the hostname
+#   sudo systemctl reload caddy
+#
+# The daemon binds 127.0.0.1:8080, so it stays unreachable except through here.
+
+ticker.example.com {
+	encode zstd gzip
+
+	# The dashboard is a read-only view of your monitoring, but it also exposes
+	# the subscribe endpoints. Put an auth gate in front of it.
+	# Generate the hash with: caddy hash-password
+	basic_auth {
+		ticker $2a$14$REPLACE_WITH_YOUR_OWN_HASH
+	}
+
+	# SSE must not be buffered or compressed, or alerts arrive in batches —
+	# which would forfeit the entire latency advantage of this channel.
+	@sse path /api/events
+	handle @sse {
+		reverse_proxy 127.0.0.1:8080 {
+			flush_interval -1
+			header_up X-Accel-Buffering no
+		}
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	log {
+		output file /var/log/caddy/ticker.log
+		format console
+	}
+}

@@ -1,0 +1,208 @@
+# Ingest sources.
+#
+# STATUS: every entry below was probed from this box on 2026-08-13 by
+# tools/validate_sources.py. Re-run it weekly — feeds rot, and a dead feed is
+# indistinguishable from a quiet news day, which is this system's most dangerous
+# failure mode.
+#
+# KEY FINDING FROM THAT PROBE: there is no longer a free tier-0 wire feed.
+#   - feeds.reuters.com  → does not resolve (Reuters retired public RSS)
+#   - apnews.com/index.rss → HTTP 401
+#   - feeds.apnews.com   → does not resolve
+# The practical route to wire copy is an aggregator that reprints it WITH
+# attribution; confirm/evidence.py:effective_tier() promotes "citing AP" items
+# back to tier 0. The only genuinely free tier-0 sources are official
+# government ones, which are authoritative but lag the wires.
+#
+# tier: 0=wire/official  1=major outlet  2=regional/aggregator
+#       3=social  4=structural (Wikidata/Wikipedia)
+
+sources:
+  # --- structural oracle: free, push, unambiguous. VERIFIED LIVE ----------
+  - id: wikimedia-eventstream
+    adapter: wikimedia_sse
+    tier: 4
+    url: "https://stream.wikimedia.org/v2/stream/recentchange"
+    expected_cadence_s: 5          # firehose is never quiet: a great liveness canary
+    wikis: ["enwiki", "wikidatawiki"]
+    notes: >
+      VERIFIED: 3 events received in under 15s. An edit adding a death date, or
+      a Wikidata P570 write, is near-real-time and structurally unambiguous.
+      Editors frequently beat outlet homepages. Vandalizable, hence tier 4
+      (weight 0.40) and never fires alone.
+
+  # --- tier 0: official government. VERIFIED LIVE, full cache headers ----
+  - id: whitehouse-presidential-actions
+    adapter: rss
+    tier: 0
+    url: "https://www.whitehouse.gov/presidential-actions/feed/"
+    poll_interval_s: 10
+    expected_cadence_s: 86400
+    notes: >
+      VERIFIED: 30 items, ETag + Last-Modified (so polling is nearly free).
+      Proclamations. For a president, a national-day-of-mourning or
+      flags-at-half-staff proclamation is official confirmation and may fire
+      alone. Lags the wires but is unimpeachable.
+
+  - id: whitehouse-news
+    adapter: rss
+    tier: 0
+    url: "https://www.whitehouse.gov/news/feed/"
+    poll_interval_s: 10
+    expected_cadence_s: 43200
+    notes: "VERIFIED: 30 items, ETag + Last-Modified."
+
+  - id: federal-register-presidential
+    adapter: rss
+    tier: 0
+    url: "https://www.federalregister.gov/api/v1/documents.json?conditions%5Btype%5D%5B%5D=PRESDOCU&order=newest&per_page=20"
+    poll_interval_s: 30
+    expected_cadence_s: 86400
+    notes: "VERIFIED: 20 entries. No cache headers — full body each poll, so poll slowly."
+
+  # --- tier 1: major outlets. ALL VERIFIED LIVE --------------------------
+  # Note: most of these send NO ETag/Last-Modified, so each poll transfers the
+  # full body (~30-80 KB). That is why intervals here are 3-5s, not 1s.
+  - id: bbc-news
+    adapter: rss
+    tier: 1
+    url: "https://feeds.bbci.co.uk/news/rss.xml"
+    poll_interval_s: 3
+    expected_cadence_s: 1800
+    notes: "VERIFIED: 37 items. No conditional-GET support."
+
+  - id: bbc-world
+    adapter: rss
+    tier: 1
+    url: "https://feeds.bbci.co.uk/news/world/rss.xml"
+    poll_interval_s: 4
+    expected_cadence_s: 1800
+    notes: "VERIFIED: 32 entries."
+
+  - id: guardian-us
+    adapter: rss
+    tier: 1
+    url: "https://www.theguardian.com/us-news/rss"
+    poll_interval_s: 3
+    expected_cadence_s: 3600
+    notes: "VERIFIED: 33 entries, ETag present — conditional GET works here."
+
+  - id: aljazeera-all
+    adapter: rss
+    tier: 1
+    url: "https://www.aljazeera.com/xml/rss/all.xml"
+    poll_interval_s: 4
+    expected_cadence_s: 3600
+    notes: "VERIFIED: 25 items, ETag + Last-Modified."
+
+  - id: nyt-politics
+    adapter: rss
+    tier: 1
+    url: "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml"
+    poll_interval_s: 5
+    expected_cadence_s: 3600
+    notes: "VERIFIED: 20 entries. No cache headers."
+
+  - id: npr-news
+    adapter: rss
+    tier: 1
+    url: "https://feeds.npr.org/1001/rss.xml"
+    poll_interval_s: 5
+    expected_cadence_s: 3600
+    notes: "VERIFIED: 10 entries."
+
+  - id: cbs-main
+    adapter: rss
+    tier: 1
+    url: "https://www.cbsnews.com/latest/rss/main"
+    poll_interval_s: 5
+    expected_cadence_s: 3600
+    notes: "VERIFIED: 30 items, Last-Modified present."
+
+  # --- tier 2: the practical route to wire copy --------------------------
+  - id: google-news
+    adapter: google_news
+    tier: 2
+    poll_interval_s: 4
+    expected_cadence_s: 3600
+    per_target_query: true
+    notes: >
+      One query URL built per target from its aliases. Enormous recall across
+      thousands of outlets in a single request, AND — since AP/Reuters killed
+      their public feeds — this is how wire copy actually reaches us. Attribution
+      parsing (screen/rules.py:find_attribution) plus tier promotion
+      (confirm/evidence.py:effective_tier) recovers the true tier-0 origin.
+      Attribution collapsing matters most here: an aggregator reprinting one
+      rumour 30 times must not read as 30 confirmations.
+
+  # --- tier 3: social. Both need work before enabling --------------------
+  - id: reddit-news
+    adapter: reddit
+    tier: 3
+    enabled: false
+    url: "https://www.reddit.com/r/news/new.json?limit=25"
+    poll_interval_s: 10
+    expected_cadence_s: 600
+    notes: >
+      PROBE RESULT: HTTP 403. Reddit now blocks unauthenticated datacenter IPs.
+      Requires a registered app + OAuth2 client-credentials token. Implement in
+      ticker/ingest/reddit.py before enabling.
+
+  - id: hn-firebase
+    adapter: hn
+    tier: 3
+    enabled: false
+    url: "https://hacker-news.firebaseio.com/v0"
+    poll_interval_s: 10
+    expected_cadence_s: 900
+    notes: >
+      Base URL, not a feed — the validator cannot check it and reports 0 entries.
+      Adapter must poll /maxitem.json then fetch deltas. Low value for a
+      political figure; keep disabled unless watching a tech figure.
+
+  # --- X filtered stream: built and tested, awaiting credentials ---------
+  # NOTE: tier here is a floor only. The adapter assigns Tier.WIRE per-post for
+  # accounts in x_accounts.yaml:tier0 (AP, Reuters, AFP, WhiteHouse, ...), so a
+  # wire tweet is wire-grade evidence and is fast-path eligible.
+  - id: x-filtered-stream
+    adapter: twitter_stream
+    tier: 1
+    enabled: false                 # flip to true once the bearer token is set
+    expected_cadence_s: 21600      # matched death reports are genuinely rare
+    bearer_token_env: TICKER_X_BEARER_TOKEN
+
+    # --- cost controls. See docs/X_API_COSTS.md before changing these. ---
+    monthly_budget_usd: 10.0       # persisted in var/x_budget.json; survives restarts
+    max_posts_per_hour: 300        # rate breaker; normal volume is single digits/day
+    breaker_cooldown_s: 1800
+    sync_rules: true               # delete stale server-side rules (silent cost leak)
+    dry_run: false                 # true = log the rules it WOULD install, connect to nothing
+
+    notes: >
+      Now the most valuable paid source available, because AP and Reuters have
+      no free RSS left (see the key finding at the top of this file).
+
+      Pricing: $0.005 per delivered post, pay-per-use, no subscription and no
+      minimum — so leaving this disabled costs exactly $0. Rules are
+      account-scoped from config/x_accounts.yaml and contain NO target names, so
+      volume is bounded by physics and adding a target costs nothing.
+
+      Expected spend with the shipped rule set: $1-5/month.
+
+      Pay-per-use permits ONE stream connection, so only one box may enable
+      this. The second box in the redundancy pair must leave it disabled.
+
+      Verify offline before spending anything:
+        .venv/bin/python -m tests.test_x_rules
+
+  # --- cross-check, NOT a news source ------------------------------------
+  - id: polymarket-ws
+    adapter: market_ws
+    tier: 3
+    enabled: false
+    url: "wss://ws-subscriptions-clob.polymarket.com/ws/market"
+    expected_cadence_s: 120
+    notes: >
+      Never contributes death evidence. Two uses: (1) a violent repricing with
+      no news means you missed something — raise alertness; (2) it tells you
+      whether you are already too late. Endpoint UNVERIFIED (websocket).

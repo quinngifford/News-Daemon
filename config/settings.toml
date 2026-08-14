@@ -1,0 +1,65 @@
+[daemon]
+# Bounded queue between ingest and screening. If ingest outruns screening we
+# want visible backpressure, not unbounded memory growth on a 911 MB box.
+queue_maxsize = 5000
+log_level = "INFO"
+
+[screen]
+dedupe_ttl_s = 3600
+dedupe_hamming_threshold = 3
+dedupe_max_entries = 50000
+
+[adjudicate]
+enabled = true
+model = "claude-haiku-4-5-20251001"
+max_tokens = 300
+timeout_s = 6.0
+# Hard spend ceiling. Expected real usage is ~2 calls/day (~$0.01/mo); this cap
+# exists so a pathological loop or a lexicon mistake cannot run up a bill.
+monthly_budget_usd = 2.00
+# On budget exhaustion or API error, fall back to the Stage-2 score rather than
+# blocking the pipeline. Failing closed on adjudication must not mean failing
+# closed on notification.
+fail_open_to_rules_score = true
+
+[notify]
+# Fan out in parallel; a slow channel must never delay a fast one.
+channels = ["telegram", "webpush", "websocket"]
+retract_enabled = true
+
+[notify.telegram]
+# export TICKER_TELEGRAM_TOKEN / TICKER_TELEGRAM_CHAT_ID — never commit secrets
+token_env = "TICKER_TELEGRAM_TOKEN"
+chat_id_env = "TICKER_TELEGRAM_CHAT_ID"
+disable_notification = false
+
+[notify.webpush]
+# Generate once with: python tools/gen_vapid_keys.py
+vapid_private_key_env = "TICKER_VAPID_PRIVATE_KEY"
+vapid_public_key_env = "TICKER_VAPID_PUBLIC_KEY"
+vapid_subject = "mailto:you@example.com"
+ttl_s = 300
+urgency = "high"
+
+[api]
+host = "127.0.0.1"
+port = 8080
+
+[store]
+path = "var/ticker.db"
+# Retain full audit trail: every item that reached Stage 2, every evidence row,
+# every alert. Needed for post-mortems and for threshold tuning.
+retain_days = 90
+
+[ops]
+# Per-source staleness alarm. A monitor that dies silently is worse than no
+# monitor, because you will trust it.
+staleness_multiplier = 4.0
+heartbeat_interval_s = 15
+
+[ops.canary]
+# Daily end-to-end drill: inject a fabricated death for a fictional target,
+# assert an alert reaches the test channel inside the budget.
+enabled = true
+hour_utc = 9
+max_latency_ms = 8000

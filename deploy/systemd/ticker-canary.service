@@ -1,0 +1,30 @@
+[Unit]
+Description=news-ticker synthetic drill (independent of the daemon)
+Documentation=file:///home/ubuntu/news-ticker-daemon/docs/ARCHITECTURE.md
+
+# Why this exists when the daemon already drills itself daily: the daemon's
+# internal canary cannot report that the DAEMON IS DEAD. This runs in its own
+# process on its own timer, so a non-zero exit reaches you through systemd's
+# OnFailure regardless of the daemon's state.
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/news-ticker-daemon
+EnvironmentFile=-/home/ubuntu/news-ticker-daemon/deploy/ticker.env
+
+# --canary-full also dispatches through the LIVE channels, which is the only way
+# to catch an expired Telegram token or a phone that has begun silencing the
+# channel. Swap to plain --canary if you would rather not receive a weekly
+# test notification.
+ExecStart=/home/ubuntu/news-ticker-daemon/.venv/bin/python -m ticker --canary-full
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/news-ticker-daemon/var
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ticker-canary

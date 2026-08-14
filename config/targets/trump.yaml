@@ -1,0 +1,87 @@
+# Annotated reference target. Copy this file to add another figure to watch —
+# adding a target never requires a code change, and costs no extra scan time
+# (the Aho-Corasick automaton scans in O(text), independent of pattern count).
+
+id: trump
+display_name: Donald Trump
+enabled: true
+birth_year: 1946
+
+# Structural oracle identity. Verified 2026-08-13 via the Wikidata API:
+# Q22686 = "Donald Trump, American businessman and politician (born 1946)".
+# Note Q3713655 is Donald Trump Jr. and Q27947481 is a different Donald Trump
+# (an American physician) — which is exactly why this is an explicit id and not
+# a name lookup.
+wikidata_id: Q22686
+wikipedia_title: Donald Trump
+
+# Stage 1 recall set. Include every surface form that could appear in a first
+# report. Cheap to add; Stage 2 handles the ambiguity of short forms.
+aliases:
+  - Donald Trump
+  - Donald J. Trump
+  - Donald John Trump
+  - President Trump
+  - President Donald Trump
+  - Trump
+  - DJT
+  - "Trump, 79"
+
+# Unambiguous forms. A hit on one of these gets a positive score bump, because
+# "Donald Trump dies" is far less likely to be about someone else than
+# "Trump dies" (which could be a relative, or metaphor).
+strong_aliases:
+  - Donald Trump
+  - Donald J. Trump
+  - Donald John Trump
+  - President Donald Trump
+
+# Max token distance between alias and death term for full proximity credit.
+# Tighten for common surnames, loosen for figures usually named in full.
+proximity_window: 12
+
+# Target-specific additions to the shared lexicons.
+extra_death_terms:
+  - 25th amendment invoked
+  - lies in state
+  - national day of mourning
+
+extra_negations:
+  - Trump Tower
+  - Trump Organization
+  - Trump administration
+  - Fred Trump      # father, d. 1999 — a recurring false positive
+  - Ivana Trump     # ex-wife, d. 2022
+  - Trumpism
+  # Relatives whose names CONTAIN the alias. Word-boundary matching alone does
+  # not save you here: alias "Donald Trump" matches inside "Donald Trump Jr."
+  # because the following character is a space. suppress_covered_aliases()
+  # voids the inner hit only if the longer phrase is listed here.
+  - Donald Trump Jr.
+  - Donald Trump Jr
+  - Donald Trump III
+  - Melania Trump
+  - Eric Trump
+  - Barron Trump
+  - Tiffany Trump
+  - Mary Trump
+
+fire_policy:
+  tier0_instant: true      # single AP/official wire alerts immediately
+  min_score: 0.80
+  llm_min_score: 0.45
+  confirm_weight: 1.00
+  watch_weight: 0.20
+  likely_weight: 0.50
+  decay_window_s: 900
+  allow_retraction: true
+
+# Deep-linked in the alert payload so the notification lands you one tap from a
+# pre-staged order. Your reaction time dominates the pipeline's — see §1.
+markets:
+  - venue: polymarket
+    label: "Trump out as president before ..."
+    url: "https://polymarket.com/"   # replace with the specific market slug
+  - venue: kalshi
+    label: "kalshi market"
+    url: "https://kalshi.com/"

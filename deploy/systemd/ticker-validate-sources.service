@@ -1,0 +1,21 @@
+[Unit]
+Description=Re-probe every configured news source
+Documentation=file:///home/ubuntu/news-ticker-daemon/config/sources.yaml
+
+# Feeds rot. Reuters' public RSS is gone and apnews.com/index.rss now 401s —
+# both discovered by this exact check. A dead feed is indistinguishable from a
+# quiet news day, which is this system's most dangerous failure mode.
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/news-ticker-daemon
+ExecStart=/home/ubuntu/news-ticker-daemon/.venv/bin/python tools/validate_sources.py
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ticker-sources

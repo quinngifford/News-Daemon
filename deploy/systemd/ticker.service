@@ -1,0 +1,62 @@
+[Unit]
+Description=news-ticker-daemon — breaking-news monitor
+Documentation=file:///home/ubuntu/news-ticker-daemon/docs/ARCHITECTURE.md
+After=network-online.target
+Wants=network-online.target
+# Without this a boot-time DNS failure kills every adapter at once and the
+# restart backoff starts from a cold pool.
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/news-ticker-daemon
+
+# Secrets live here, not in this unit file. 0600, owned by ubuntu.
+EnvironmentFile=-/home/ubuntu/news-ticker-daemon/deploy/ticker.env
+
+ExecStart=/home/ubuntu/news-ticker-daemon/.venv/bin/python -m ticker
+
+Restart=always
+RestartSec=5
+
+# Restart=always only catches a process that EXITS. The daemon sends
+# sd_notify WATCHDOG=1 from its event loop (ops/health.py), so a loop that is
+# alive but no longer working is also restarted — which is the failure mode you
+# would otherwise never notice.
+WatchdogSec=90
+
+# --- hardening. This process only needs to read its own directory, write var/,
+# --- and make outbound HTTPS connections.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/news-ticker-daemon/var
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# 911 MB box. Cap so a leak degrades this service instead of OOM-killing sshd
+# and locking you out of the machine.
+MemoryMax=420M
+MemoryHigh=340M
+TasksMax=256
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ticker
+
+[Install]
+WantedBy=multi-user.target

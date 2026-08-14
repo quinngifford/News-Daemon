@@ -1,0 +1,59 @@
+# X filtered-stream allow-list. THIS FILE IS YOUR BILL.
+#
+# Every post the stream delivers costs $0.005. A keyword-only rule on a name
+# like "Trump" matches thousands of posts a day on political idiom alone, and
+# millions on the event day — the pay-per-use cap is 2M reads/month, which is a
+# $10,000 ceiling, not a safety feature.
+#
+# Scoping rules to `from:` a fixed account list makes volume bounded by physics:
+# 30 accounts can only tweet so much, no matter what happens in the world.
+#
+# NOTE ON DESIGN: target names deliberately do NOT appear in the X rules. The
+# rules are (allow-listed accounts) AND (death vocabulary); our own free local
+# funnel does the target matching. Two consequences:
+#   * minimum possible X spend — we buy wire death reports, nothing else
+#   * adding a new target costs $0 and needs no rule change
+
+# Wire services and official government accounts. Anything these post about a
+# death is tier-0 grade — see confirm/evidence.py:effective_tier().
+tier0:
+  - AP
+  - Reuters
+  - AFP
+  - ReutersWorld
+  - BNONews          # aggregator, but exceptionally fast on breaking deaths
+  - WhiteHouse
+  - POTUS
+  - VP
+
+# Major outlet breaking-news accounts.
+tier1:
+  - BBCBreaking
+  - cnnbrk
+  - nytimes
+  - WSJ
+  - washingtonpost
+  - NBCNews
+  - ABC
+  - CBSNews
+  - SkyNewsBreak
+  - business         # Bloomberg
+  - NPR
+  - guardian
+  - FT
+  - politico
+  - axios
+  - thehill
+  - AJEnglish
+
+# Death vocabulary for the X rules. Kept SHORT and unambiguous on purpose —
+# this clause is a cost control, not a recall net. Broad terms here (e.g. bare
+# "death") would multiply matched volume for no detection benefit, because the
+# local funnel re-screens everything anyway with a much richer lexicon.
+death_clause:
+  - died
+  - dies
+  - dead
+  - "has died"
+  - "passed away"
+  - obituary

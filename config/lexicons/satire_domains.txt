@@ -1,0 +1,18 @@
+# Hard reject (weight -8.0). Satire sites publish plausible-looking death
+# headlines and are a recurring source of viral fake-death claims.
+
+theonion.com
+babylonbee.com
+clickhole.com
+reductress.com
+thebeaverton.com
+newsthump.com
+thedailymash.co.uk
+waterfordwhispersnews.com
+duffelblog.com
+thehardtimes.net
+betootaadvocate.com
+theshovel.com.au
+worldnewsdailyreport.com
+empirenews.net
+huzlers.com

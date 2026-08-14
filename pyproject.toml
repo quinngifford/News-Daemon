@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "news-ticker-daemon"
+version = "0.1.0"
+description = "24/7 breaking-news monitor with tiered screening and instant push alerts"
+requires-python = ">=3.12"
+
+# Pinned to the exact versions verified working on this box (Ubuntu 24.04,
+# Python 3.12.3, 2 vCPU / 911 MB). Pins rather than ranges on purpose: this is a
+# single-deployment daemon whose whole value is being up and correct at an
+# unpredictable moment, so a surprise transitive upgrade is pure downside.
+dependencies = [
+    "httpx[http2]==0.28.1",       # HTTP/2 pooling for conditional-GET polling
+    "h2==4.4.1",
+    "pyahocorasick==2.3.1",       # Stage-1 multi-pattern gate
+    "feedparser==6.0.14",
+    "PyYAML==6.0.3",
+    "fastapi==0.141.1",
+    "uvicorn[standard]==0.52.2",
+    "pywebpush==2.4.0",           # brings py-vapid + cryptography
+    "anthropic==0.121.0",         # Stage-3 adjudication (optional at runtime)
+]
+
+[project.scripts]
+ticker = "ticker.__main__:main"
+
+# Explicit, because this repo has several top-level directories (tests, tools,
+# web, config, docs, deploy) and setuptools auto-discovery refuses to guess
+# between them — it errors out rather than picking.
+[tool.setuptools.packages.find]
+include = ["ticker*"]
+
+# schema.sql is loaded relative to ticker/store/db.py, so it must ship with the
+# package or a non-editable install cannot open its own database.
+[tool.setuptools.package-data]
+"ticker.store" = ["*.sql"]
+"ticker.adjudicate" = ["prompts/*"]
+
+[tool.ruff]
+line-length = 90
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4"]
+ignore = [
+    "E501",    # long lines in prose comments are intentional
+    "B008",    # FastAPI dependency style
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]     # sys.path juggling before imports
+"tools/*" = ["E402"]

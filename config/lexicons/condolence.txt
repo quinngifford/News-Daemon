@@ -1,0 +1,42 @@
+# The #1 false-positive class: the target is reacting to SOMEONE ELSE's death.
+# "Trump mourns death of former aide" satisfies Stage 1 perfectly.
+# Any hit here is a strong negative (weight -3.6).
+
+mourns
+mourned
+mourning
+condolence
+condolences
+offers condolences
+sends condolences
+pays tribute
+paid tribute
+pays respects
+tribute
+tributes
+eulogy
+eulogize
+eulogized
+eulogises
+attends funeral
+attended funeral
+attend the funeral
+at the funeral of
+orders flags
+flags at half-staff
+half-staff
+half staff
+lowered to half
+saddened
+deeply saddened
+heartbroken
+reacts to the death
+statement on the death
+statement on the passing
+honors the memory
+honours the memory
+remembering
+in remembrance
+memorial service
+wake for
+survived by

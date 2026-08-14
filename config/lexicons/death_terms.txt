@@ -1,0 +1,56 @@
+# Stage 1 death lexicon — optimise for RECALL, not precision.
+# Precision is Stage 2's job (ticker/screen/rules.py). Anything that could
+# plausibly appear in the first sentence reporting a death belongs here.
+# Matching is whole-word and case-insensitive.
+
+dies
+die
+died
+dying
+dead
+death
+deaths
+deceased
+passed away
+passes away
+passing
+obituary
+obituaries
+in memoriam
+memoriam
+succumbed
+succumbs
+fatality
+fatally
+laid to rest
+rest in peace
+r.i.p.
+no longer with us
+cause of death
+pronounced dead
+found dead
+confirmed dead
+declared dead
+last rites
+lying in state
+state funeral
+funeral
+funeral service
+buried
+burial
+cremated
+interred
+casket
+coffin
+posthumous
+posthumously
+demise
+perished
+expired
+mortality
+autopsy
+coroner
+medical examiner
+end of an era
+
+# Do NOT add bare "rip" — it matches "rip up the bill" as a whole word.

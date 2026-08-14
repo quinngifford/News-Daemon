@@ -1,0 +1,73 @@
+# Figurative uses of death vocabulary. Matching any of these is a strong
+# negative signal (weight -5.0), because these phrases are extremely common in
+# political coverage and never indicate an actual death.
+
+dead heat
+dead in the water
+dead on arrival
+dead end
+dead last
+dead wrong
+dead serious
+dead center
+dead certain
+dead ahead
+drop dead
+dead cat bounce
+dead weight
+dead air
+dead letter
+dead money
+brain dead
+left for dead
+dead man walking
+over my dead body
+dying industry
+dying breed
+dying art
+death spiral
+death toll
+death penalty
+death row
+death threat
+death threats
+death sentence
+death star
+death march
+death knell
+death by a thousand cuts
+death tax
+death squad
+kiss of death
+sudden death
+near death
+deadlock
+deadlocked
+deadline
+deadlines
+deadly
+dead ball
+dying to
+to die for
+died laughing
+political death
+career death
+
+# Added 2026-08-13 from real live-feed false positives (see
+# tests/fixtures/live_negatives.txt).
+dead or alive
+war dead
+war deaths
+the dead
+dies on stage
+died on stage
+wants him dead
+wants her dead
+wants them dead
+dead image
+dead body
+dead heat
+brought back from the dead
+back from the dead
+raise the dead
+dead man's

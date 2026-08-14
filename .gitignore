@@ -1,0 +1,23 @@
+# Secrets — NEVER commit these.
+var/vapid_private.pem
+deploy/ticker.env
+*.pem
+*.key
+.env
+.env.*
+
+# Runtime state
+var/
+!var/.gitkeep
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+
+# Editor / OS
+.DS_Store
+*.swp

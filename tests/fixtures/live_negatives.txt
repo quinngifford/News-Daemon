@@ -1,0 +1,67 @@
+# REAL headlines captured from live feeds on 2026-08-13 during a 100-second
+# dry-run. Every one of these reached Stage 2 as a CANDIDATE, and NONE of them
+# reports Donald Trump's death.
+#
+# This corpus is worth more than any synthetic test in this repo, because these
+# are the actual adversaries the system faces on an ordinary news day.
+#
+# The hard safety invariant tests/test_live_negatives.py enforces:
+#   NO item here may score >= fire_policy.min_score (0.80).
+# That threshold is what enables fast-path firing and what lets two independent
+# tier-1 outlets reach CONFIRMED. A false positive at or above it is a false
+# alert on your phone.
+#
+# The Lindsey Graham cluster is the one that mattered: it was reported by the
+# Guardian (0.922), Bloomberg (0.837), Al-Monitor (0.837), NYT (0.757), Semafor
+# and Le Monde. Two independent tier-1 origins above min_score = CONFIRMED.
+
+# --- appositive: another person is the subject, Trump is a modifier ---
+Lindsey Graham, key ally of Donald Trump, dies after sudden illness aged 71 - The Guardian
+Lindsey Graham, Republican Senator and Staunch Trump Ally, Dies at 71 - The New York Times
+Lindsey Graham, US Republican senator and Trump ally, dies at 71 from heart ailment - Al-Monitor
+Lindsey Graham, Senate Hawk Turned Trump Ally, Dies at 71 (6) - news.bloombergtax.com
+Lindsey Graham, US senator and Trump ally, dies after 'brief and sudden illness' - Le Monde.fr
+Lindsey Graham, Republican senator and Trump ally, dies - Semafor
+Robert Mueller, former FBI director who led Trump investigation, dies at 81 - Politico
+Trump says he spoke to Sen. Lindsey Graham shortly before he died - CNN
+
+# --- generic human subject, Trump only a modifier ---
+California man known for pro-Trump displays dies after assault outside his home - NBC News
+Army veteran dies days after attack outside his Trump-themed house in California - The Hill
+
+# --- other people who share the surname (unenumerable by name) ---
+Larry Trump Obituary (2026) - Latrobe, PA - Tribune Review - Legacy obituary
+George Trump Obituary (2026) - Hershey, PA - PennLive.com
+Linda Marie Trump Obituary Jun 7, 2026 - Johnson-Danielson Funeral Home
+Curtis Earl Trump Obituary Jun 19, 2026 - Cravens-Shires Funeral Home
+Philip H. Trump Obituary - York Daily Record
+
+# --- future/conditional construction: "when Trump dies" ---
+Wisconsin brewery offers free beer when Trump dies, gets in trouble with state regulators - Washington Post
+Wisconsin brewery promises free beer when Trump dies and 'half-price beer day' when McConnell dies
+Brewery that promised free beer when Trump dies loses alcohol permit - USA Today
+Brewery that promised free beer when Trump dies set to lose licence - Brauwelt
+Brewery That Promised Free Beer on the Day Trump Dies Is Stripped of Alcohol Permit - People.com
+Brewery offering 'free beer' the day Trump dies has license revoked
+Wisconsin brewery offering 'free beer' when Trump dies vows fight over revoked permit - NJ.com
+Wisconsin brewery that offered 'free beer' when Trump dies says alcohol permit revoked - Yahoo
+Wisconsin's Minocqua Brewing Company, which promised free beer when Trump dies, has license revoked
+Wisconsin brewery that promised free beer when Trump dies now plans 'half-price beer day' when McConnell dies
+Brewery stripped of alcohol permit after promising free beer when Trump dies - Yahoo
+US brewery punished for promising free beer when Trump dies - The Independent
+Brewery Punished After Promising Free Beers When Trump Dies - The Daily Beast
+This Is What Will Happen When Trump Dies: Wolff - Yahoo
+
+# --- metaphor / idiom not previously in the lexicon ---
+Opinion | Iran's Trump Strategy-Dead or Alive - WSJ
+Trump says he wishes anti-weaponization fund wasn't dead, angering senators he needs to confirm
+Trump calls for 'Anti-Weaponization Bill' after describing the fund as 'dead' - KCRA
+Trump: Anti-weaponization fund is 'dead' - CNN
+Trump dies on stage (metaphorically) - Daily Kos
+'He Has No Choice. He Lost': Expert Delivers Brutal Obituary for Trump's Failed Iran War - Common Dreams
+First Thing: Pentagon accused of disrespecting war dead as Trump threatens to resume Iran war
+Trump appears to downplay Iran war deaths in social posts comparing them to previous conflicts - ABC
+White House calls out Star Wars actor Mark Hamill for dead Trump image - Euronews.com
+
+# --- third-party hostility, not a death report ---
+Iran Wants Trump Dead - Mark Urban | Substack
