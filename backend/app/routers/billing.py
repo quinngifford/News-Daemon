@@ -17,14 +17,21 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_db
 from app.models import Purchase, User, utcnow
-from app.security import current_user
+from app.security import current_user, current_user_optional
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 
 
 @router.get("/config")
-def billing_config(user: User | None = Depends(current_user)) -> dict:
+def billing_config(user: User | None = Depends(current_user_optional)) -> dict:
+    """Price and publishable key. Readable while logged OUT.
+
+    Was `Depends(current_user)`, which 401'd for anyone not signed in — i.e. on
+    the sign-in screen, where the price is displayed. The client swallowed it,
+    so the page silently showed a placeholder price and wrongly offered the
+    dev-grant button.
+    """
     s = get_settings()
     return {
         "price_cents": s.price_cents,
@@ -32,6 +39,8 @@ def billing_config(user: User | None = Depends(current_user)) -> dict:
         "currency": s.currency,
         "publishable_key": s.stripe_publishable_key,
         "configured": bool(s.stripe_secret_key),
+        # Surfaced so the UI can warn you before a customer hits a dead button.
+        "live_mode": s.stripe_secret_key.startswith("sk_live_"),
         "entitled": user.is_entitled if user else False,
     }
 
@@ -77,9 +86,24 @@ def create_checkout(user: User = Depends(current_user),
             metadata={"user_id": user.id},
         )
     except stripe.StripeError as exc:
-        log.error("stripe checkout failed: %s", exc)
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY,
-                            "could not start checkout") from None
+        # Surface what Stripe actually said. The previous generic message meant
+        # a misconfigured account looked identical to a network failure, and the
+        # only way to tell them apart was reading server logs — which is exactly
+        # the situation you are in when checkout silently does nothing.
+        detail = getattr(exc, "user_message", None) or str(exc)
+        code = getattr(exc, "code", None) or type(exc).__name__
+        log.error("stripe checkout failed [%s]: %s", code, exc)
+
+        hint = ""
+        if "activate" in detail.lower() or code in ("account_invalid",
+                                                    "charges_disabled"):
+            hint = (" Your Stripe account is not activated for live payments yet"
+                    " — complete onboarding at dashboard.stripe.com, or switch"
+                    " to test keys (sk_test_/pk_test_) while developing.")
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"Stripe rejected the request [{code}]: {detail}{hint}",
+        ) from None
 
     db.add(Purchase(user_id=user.id, stripe_session_id=session.id,
                     amount_cents=s.price_cents, currency=s.currency,

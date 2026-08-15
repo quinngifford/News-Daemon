@@ -51,10 +51,17 @@ async function boot() {
 
 async function loadBillingConfig() {
   try {
-    const cfg = await (await api('/api/billing/config')).json();
-    $('priceHint').textContent = cfg.price_display;
-    $('priceBig').textContent = cfg.price_display;
-    if (!cfg.configured) $('devGrantBtn').hidden = false;
+    const r = await api('/api/billing/config');
+    // Must check r.ok: a 401/500 still parses as JSON, and treating that body
+    // as config made `cfg.configured` undefined — which wrongly revealed the
+    // dev-grant button and showed an undefined price.
+    if (!r.ok) return;
+    const cfg = await r.json();
+    if (cfg.price_display) {
+      $('priceHint').textContent = cfg.price_display;
+      $('priceBig').textContent = cfg.price_display;
+    }
+    $('devGrantBtn').hidden = cfg.configured !== false;
   } catch { /* cosmetic only — never block boot */ }
 }
 
@@ -112,7 +119,11 @@ $('buyBtn').onclick = async () => {
   try {
     const r = await api('/api/billing/checkout', { method: 'POST' });
     const data = await r.json();
-    if (!r.ok) throw new Error(data.detail || 'Checkout unavailable');
+    if (!r.ok) {
+      const d = data.detail;
+      throw new Error(Array.isArray(d) ? (d[0]?.msg || 'Checkout unavailable')
+                                       : (d || `Checkout failed (${r.status})`));
+    }
     if (data.already_entitled) return boot();
     window.location.href = data.url;
   } catch (err) {
