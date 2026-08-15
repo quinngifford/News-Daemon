@@ -43,6 +43,22 @@ class Settings(BaseSettings):
     stripe_publishable_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_price_id: str = ""              # optional; falls back to ad-hoc price
+
+    # Stripe Managed Payments is on by default for new accounts, and it REQUIRES
+    # a product tax code — without one, checkout.Session.create fails outright.
+    #
+    # txcd_10503004 = "Digital other news or documents — viewable only —
+    # non subscription — with permanent rights", which is precisely this
+    # product: one payment, lifetime access, viewed in-app rather than
+    # downloaded. Reasonable alternatives if your accountant prefers:
+    #   txcd_10701411  Electronically Delivered Information Services (personal)
+    #   txcd_10000000  General — Electronically Supplied Services
+    # The code affects how much sales tax/VAT your customers are charged, so
+    # confirm it rather than inheriting this default forever.
+    stripe_tax_code: str = "txcd_10503004"
+    # Set false to opt out of Managed Payments per session and handle tax
+    # yourself. Leaving it on means Stripe calculates and remits for you.
+    stripe_managed_payments: bool = True
     checkout_success_path: str = "/?paid=1"
     checkout_cancel_path: str = "/?canceled=1"
 

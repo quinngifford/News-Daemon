@@ -57,6 +57,16 @@ def create_checkout(user: User = Depends(current_user),
 
     stripe.api_key = s.stripe_secret_key
 
+    product_data: dict = {
+        "name": f"{s.app_name} — lifetime access",
+        "description": "Instant breaking-news alerts. One-time payment.",
+    }
+    # Required by Stripe Managed Payments, which is enabled by default on new
+    # accounts. Omitting it makes Session.create fail with
+    # "the product tax code is missing" — see config.stripe_tax_code.
+    if s.stripe_tax_code:
+        product_data["tax_code"] = s.stripe_tax_code
+
     line_item = (
         {"price": s.stripe_price_id, "quantity": 1}
         if s.stripe_price_id
@@ -64,27 +74,28 @@ def create_checkout(user: User = Depends(current_user),
             "price_data": {
                 "currency": s.currency,
                 "unit_amount": s.price_cents,
-                "product_data": {
-                    "name": f"{s.app_name} — lifetime access",
-                    "description": "Instant breaking-news alerts. One-time payment.",
-                },
+                "product_data": product_data,
             },
             "quantity": 1,
         }
     )
 
+    create_kwargs: dict = {
+        "mode": "payment",
+        "line_items": [line_item],
+        "customer_email": user.email,
+        "success_url": f"{s.base_url}{s.checkout_success_path}",
+        "cancel_url": f"{s.base_url}{s.checkout_cancel_path}",
+        # Echoed back on the webhook so we can attribute payment to a user
+        # without trusting anything the browser sends.
+        "client_reference_id": user.id,
+        "metadata": {"user_id": user.id},
+    }
+    if not s.stripe_managed_payments:
+        create_kwargs["managed_payments"] = {"enabled": False}
+
     try:
-        session = stripe.checkout.Session.create(
-            mode="payment",
-            line_items=[line_item],
-            customer_email=user.email,
-            success_url=f"{s.base_url}{s.checkout_success_path}",
-            cancel_url=f"{s.base_url}{s.checkout_cancel_path}",
-            # Echoed back on the webhook so we can attribute payment to a user
-            # without trusting anything the browser sends.
-            client_reference_id=user.id,
-            metadata={"user_id": user.id},
-        )
+        session = stripe.checkout.Session.create(**create_kwargs)
     except stripe.StripeError as exc:
         # Surface what Stripe actually said. The previous generic message meant
         # a misconfigured account looked identical to a network failure, and the
@@ -95,11 +106,14 @@ def create_checkout(user: User = Depends(current_user),
         log.error("stripe checkout failed [%s]: %s", code, exc)
 
         hint = ""
-        if "activate" in detail.lower() or code in ("account_invalid",
-                                                    "charges_disabled"):
+        low = detail.lower()
+        if "activate" in low or code in ("account_invalid", "charges_disabled"):
             hint = (" Your Stripe account is not activated for live payments yet"
                     " — complete onboarding at dashboard.stripe.com, or switch"
                     " to test keys (sk_test_/pk_test_) while developing.")
+        elif "tax code" in low or "managed payments" in low:
+            hint = (" Set STRIPE_TAX_CODE (default txcd_10503004), or set"
+                    " STRIPE_MANAGED_PAYMENTS=false to opt this session out.")
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
             f"Stripe rejected the request [{code}]: {detail}{hint}",
