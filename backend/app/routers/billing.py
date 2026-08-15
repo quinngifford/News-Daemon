@@ -126,6 +126,60 @@ def create_checkout(user: User = Depends(current_user),
     return {"already_entitled": False, "url": session.url, "id": session.id}
 
 
+@router.post("/confirm")
+def confirm_checkout(body: dict, user: User = Depends(current_user),
+                     db: Session = Depends(get_db)) -> dict:
+    """Verify a completed checkout directly with Stripe, and grant if genuine.
+
+    A safety net for the webhook, NOT a shortcut around it. The distinction that
+    makes this safe: we do not believe anything the browser tells us about
+    payment. We take only the session id, ask Stripe's API what actually
+    happened, and additionally require that the session was created for THIS
+    user — so a stolen or guessed session id cannot entitle someone else.
+
+    Without this, any webhook failure — a wrong signing secret, an endpoint on
+    the wrong Stripe account, a deploy mid-payment — silently takes money and
+    delivers nothing, which is the worst possible outcome for the customer.
+    """
+    s = get_settings()
+    session_id = (body or {}).get("session_id", "")
+    if not session_id.startswith("cs_"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "session_id required")
+    if not s.stripe_secret_key:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
+                            "billing not configured")
+    if user.is_entitled:
+        return {"entitled": True, "granted": False, "reason": "already entitled"}
+
+    stripe.api_key = s.stripe_secret_key
+    try:
+        sess = stripe.checkout.Session.retrieve(session_id)
+    except stripe.StripeError as exc:
+        log.warning("confirm: could not retrieve %s: %s", session_id, exc)
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY,
+                            "could not verify payment with Stripe") from None
+
+    # Ownership FIRST, before revealing anything about the session. Checking
+    # payment_status first would let any logged-in user probe arbitrary session
+    # ids and learn whether they were paid — an information leak, even though it
+    # grants nothing.
+    owner = (sess.get("client_reference_id")
+             or (sess.get("metadata") or {}).get("user_id"))
+    if owner != user.id:
+        log.error("confirm: session %s belongs to %s, not %s",
+                  session_id, owner, user.id)
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+                            "this payment belongs to another account")
+
+    if sess.get("payment_status") != "paid":
+        return {"entitled": False, "granted": False,
+                "reason": f"payment_status={sess.get('payment_status')}"}
+
+    _grant(db, sess)
+    db.refresh(user)
+    return {"entitled": user.is_entitled, "granted": True, "reason": "verified"}
+
+
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)) -> dict:
     """Stripe -> us. The ONLY place entitlement is granted."""
@@ -144,15 +198,25 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)) -> dic
 
     etype = event["type"]
     obj = event["data"]["object"]
+    log.info("stripe webhook: %s (%s)", etype, event.get("id"))
 
-    if etype == "checkout.session.completed":
-        _grant(db, obj)
-    elif etype in ("charge.refunded", "charge.dispute.created"):
-        _revoke(db, obj)
-    else:
-        log.debug("stripe webhook: ignoring %s", etype)
+    try:
+        if etype == "checkout.session.completed":
+            _grant(db, obj)
+        elif etype in ("charge.refunded", "charge.dispute.created"):
+            _revoke(db, obj)
+        else:
+            log.debug("stripe webhook: ignoring %s", etype)
+    except Exception:
+        # Log the traceback and return 500 on purpose: Stripe retries failed
+        # deliveries for ~3 days, so a transient database blip self-heals
+        # instead of silently costing a customer the access they paid for.
+        db.rollback()
+        log.exception("stripe webhook: FAILED handling %s (%s)",
+                      etype, event.get("id"))
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            "handler failed; Stripe will retry") from None
 
-    # Always 200 for handled-or-ignored, or Stripe retries indefinitely.
     return {"received": True}
 
 

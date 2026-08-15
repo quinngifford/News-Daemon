@@ -138,23 +138,54 @@ $('devGrantBtn').onclick = async () => {
   if (r.ok) { me = await r.json(); enterApp(); }
 };
 
-// Returning from Stripe: entitlement is granted by the webhook, which can land
-// a beat after the redirect — so poll briefly instead of showing a stale paywall.
-if (new URLSearchParams(location.search).get('paid') === '1') {
-  let tries = 0;
-  const poll = setInterval(async () => {
-    if (++tries > 12) return clearInterval(poll);
-    const r = await api('/api/auth/me');
-    if (!r.ok) return;
-    const u = await r.json();
-    if (u.entitled) {
-      clearInterval(poll);
-      me = u;
-      history.replaceState({}, '', '/');
-      enterApp();
+// Returning from Stripe. Entitlement is normally granted by the webhook, but
+// we also ask the server to verify the session directly with Stripe — so a
+// webhook that is misconfigured or briefly down cannot leave you having paid
+// with nothing to show for it.
+(() => {
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('paid') !== '1') return;
+  const sessionId = qs.get('session_id');
+
+  const finish = (u) => {
+    me = u;
+    history.replaceState({}, '', '/');
+    enterApp();
+  };
+
+  (async () => {
+    // 1. Ask the server to verify with Stripe (authoritative, not browser-trusted).
+    if (sessionId) {
+      try {
+        const r = await api('/api/billing/confirm', {
+          method: 'POST', body: JSON.stringify({ session_id: sessionId }),
+        });
+        if (r.ok && (await r.json()).entitled) {
+          const u = await (await api('/api/auth/me')).json();
+          if (u.entitled) return finish(u);
+        }
+      } catch { /* fall through to polling */ }
     }
-  }, 1200);
-}
+    // 2. Otherwise wait for the webhook to land.
+    let tries = 0;
+    const poll = setInterval(async () => {
+      if (++tries > 12) {
+        clearInterval(poll);
+        const err = $('buyError');
+        if (err) {
+          err.textContent = 'Payment received, but access has not activated yet. '
+            + 'Reload in a moment, or contact support with your receipt.';
+          err.hidden = false;
+        }
+        return;
+      }
+      const r = await api('/api/auth/me');
+      if (!r.ok) return;
+      const u = await r.json();
+      if (u.entitled) { clearInterval(poll); finish(u); }
+    }, 1500);
+  })();
+})();
 
 // ───────────────────────── the paper ─────────────────────────
 

@@ -59,7 +59,10 @@ class Settings(BaseSettings):
     # Set false to opt out of Managed Payments per session and handle tax
     # yourself. Leaving it on means Stripe calculates and remits for you.
     stripe_managed_payments: bool = True
-    checkout_success_path: str = "/?paid=1"
+    # {CHECKOUT_SESSION_ID} is substituted by Stripe on redirect. It lets the
+    # client ask us to verify the payment directly with Stripe, so a broken or
+    # misconfigured webhook cannot leave a paying customer with no access.
+    checkout_success_path: str = "/?paid=1&session_id={CHECKOUT_SESSION_ID}"
     checkout_cancel_path: str = "/?canceled=1"
 
     # Lets you use the product before Stripe exists. Refuses to apply when
