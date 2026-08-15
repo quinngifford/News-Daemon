@@ -41,7 +41,7 @@ class Dispatcher:
         results = await asyncio.gather(
             *(c.warm() for c in self.channels), return_exceptions=True
         )
-        for ch, r in zip(self.channels, results):
+        for ch, r in zip(self.channels, results, strict=True):
             if isinstance(r, Exception):
                 log.warning("channel %s failed to warm: %s", ch.name, r)
 
@@ -65,7 +65,7 @@ class Dispatcher:
         results = await asyncio.gather(
             *(c.send(alert) for c in self.channels), return_exceptions=True
         )
-        for ch, r in zip(self.channels, results):
+        for ch, r in zip(self.channels, results, strict=True):
             if isinstance(r, Exception):
                 self.stats["channel_errors"] += 1
                 # One dead channel must not mask the others; the whole point of

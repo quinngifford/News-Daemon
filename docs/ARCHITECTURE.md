@@ -278,7 +278,7 @@ comma or a preposition (`of`, `ally`, `aide`, `critic`…), owns the verb.
 Result: 39 candidates → 1, with negatives topping out at **0.221** against true
 positives at **0.906–0.970** — a clean margin rather than a fragile threshold.
 
-Two lessons worth keeping:
+Three lessons worth keeping:
 
 1. **Enumerated negation does not scale.** `Fred Trump` and `Ivana Trump` can be
    listed in config; the unbounded supply of local-obituary Trumps cannot. That
@@ -286,6 +286,37 @@ Two lessons worth keeping:
 2. **Proximity is not attribution.** Every remaining false positive at the fire
    threshold was a case where the death verb was near the target but belonged to
    someone else. Grammatical role beats token distance.
+3. **Precision fixes cost recall, and only a second corpus shows where.** The
+   structural rule from lesson 1 (`foreign_given_name_spans`) treated any
+   capitalised word before a one-word alias as a given name — so
+   `"Breaking: Pele is dead"` had its only alias suppressed and scored **0.000**.
+   Donald Trump was unaffected purely by accident, because his multi-word
+   aliases skip that check. See §4.2.
+
+### 4.2 Generalisation: the rules were quietly overfit to one person
+
+Every weight above was tuned against Trump headlines, and
+`tests/test_replay.py` replays each false-positive class against seven other
+people — Elizabeth II, Jimmy Carter, Benedict XVI, Pelé, Shinzō Abe, Henry
+Kissinger, Silvio Berlusconi. Different name shapes are the point: mononyms,
+regnal numerals, non-ASCII characters, and titles-as-names all break different
+assumptions.
+
+It found the Pelé bug on its first run. Two fixes were needed, pulling in
+opposite directions, which is what makes this class of bug hard:
+
+| Case | Before | After | Fix |
+|---|---|---|---|
+| `Breaking: Pele is dead` | 0.000 ❌ | 0.966 | headline labels (`Breaking:`, `Update:`) are not given names |
+| `Philip H. Trump Obituary` | 0.883 ❌ | 0.000 | walk back past middle initials — judge on `Philip`, not `H.` |
+| `Donald J. Trump dies at 79` | 0.970 | 0.970 | same walk-back resolves to a configured alias |
+
+The general rule, encoded in the comments there: **be conservative about
+suppressing an alias.** A false suppression silently destroys recall for the one
+event the system exists to catch; a missed collision costs one LLM call.
+
+Run `tests/test_replay.py` before trusting any change to
+`foreign_given_name_spans` or the alias-suppression path.
 
 **Stage 3 — LLM adjudication, only for the handful that survive.** Because
 volume here is ~2/day, you can afford the *best* judgment. Claude Haiku, strict
@@ -401,17 +432,39 @@ A monitor that dies silently is worse than no monitor, because you will trust it
 ## 8. Backtesting — how you gain confidence before the event
 
 You cannot wait for the real event to find out whether this works.
-`tools/replay.py` replays archived corpora around *known* past deaths
-(a labelled set of past public-figure deaths, plus known **hoax** episodes as
-negatives) through the unmodified funnel and reports:
+`tools/replay.py` replays **real archived coverage** through the unmodified
+funnel and reports detection, score distribution, and which stage killed each
+true positive that got away.
 
-- would-be detection latency vs. the actual wire timestamp,
-- false-positive rate per 100k items,
-- which stage killed each true positive that got away.
+```bash
+.venv/bin/python tools/replay.py --verify   # re-check death dates vs Wikidata
+.venv/bin/python tools/replay.py --fetch    # download windows (slow, see below)
+.venv/bin/python tools/replay.py --misses   # replay from cache, show failures
+```
 
-Tune thresholds against that harness, never against intuition. The hoax
-negatives matter as much as the true positives: they are the cases that cost
-money.
+**Ground truth comes from Wikidata P570, never from memory.** When the corpus in
+`config/replay_events.yaml` was first drafted from recall, three of eleven Q-ids
+were wrong: `Q131774` is "adolescence", `Q643` is the river Po, `Q234691` is
+Stevie Nicks. `--verify` re-checks every entry. Negative controls are entities
+with *no* P570, so any fire against their coverage is a false positive by
+definition — no labelling judgement required.
+
+Three traps, all of which this tool hit before working:
+
+1. **Do not pre-filter the query for death terms.** Querying
+   `"Queen Elizabeth" (died OR dead)` selects for exactly what Stage 1 tests,
+   making the automaton a no-op — the same structural mistake the Google News
+   adapter makes. Queries are name-only; the funnel does the detecting.
+2. **P570 has no time of day.** An 8-hour window from 00:00 UTC missed
+   Elizabeth II entirely — she died ~16:30 UTC, and the corpus filled up with
+   "Queen cancels meeting after doctors advise rest". Windows are 48h.
+3. **Never cache a failed fetch.** GDELT's rate limit is stricter than its own
+   error message claims (a run of ~9 windows left even 7-second gaps returning
+   429). An early version cached those failures as `[]`, so the backtest would
+   have "passed" on zero articles forever. `RateLimited` is now distinct from a
+   genuinely empty window, and only the latter is cached.
+
+Tune thresholds against this harness, never against intuition.
 
 ## 9. Cost
 

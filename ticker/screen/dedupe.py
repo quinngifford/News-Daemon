@@ -81,7 +81,7 @@ class Deduper:
         h = simhash(text)
         keys = self._band_keys(h)
 
-        for band, key in zip(self._bands, keys):
+        for band, key in zip(self._bands, keys, strict=True):
             bucket = band.get(key)
             if not bucket:
                 continue
@@ -91,7 +91,7 @@ class Deduper:
                     return True
 
         expiry = now + self.ttl_s
-        for band, key in zip(self._bands, keys):
+        for band, key in zip(self._bands, keys, strict=True):
             band.setdefault(key, []).append((h, expiry))
         self._count += 1
 

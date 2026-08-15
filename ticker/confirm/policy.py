@@ -17,7 +17,7 @@ import time
 from ticker.adjudicate.llm import Adjudicator
 from ticker.config import Target
 from ticker.confirm.evidence import TargetAccumulator
-from ticker.models import Alert, Candidate, Evidence, Stage, TargetState, Tier, now_ns
+from ticker.models import Alert, Candidate, Evidence, TargetState, now_ns
 from ticker.notify.dispatcher import Dispatcher
 from ticker.screen import rules
 

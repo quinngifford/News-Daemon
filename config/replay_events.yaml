@@ -1,0 +1,109 @@
+# Ground-truth corpus for tools/replay.py.
+#
+# Every death date below was read from Wikidata property P570 on 2026-08-13, not
+# from memory. That matters: when this list was first drafted from recall, three
+# of eleven Q-ids were wrong — Q131774 is "adolescence", Q643 is the river Po,
+# and Q234691 is Stevie Nicks. Pin the id, verify the label, never trust a name
+# search (`--verify` re-checks every entry against Wikidata).
+#
+# WHY THIS CORPUS EXISTS: all tuning so far has been against Donald Trump
+# headlines. Rules tuned on one person can silently fail on another — different
+# name shapes, different honorifics, different coverage patterns. Replaying real
+# coverage of OTHER people through a synthesized target config is the only way to
+# find out whether the mechanism generalises or is quietly overfit.
+
+# Real coverage windows, fetched from the GDELT DOC 2.0 archive.
+#
+# QUERIES ARE NAME-ONLY, DELIBERATELY. An earlier draft queried
+# `"Queen Elizabeth" (died OR dead)` — which pre-filters for exactly what Stage 1
+# tests, making the automaton a no-op and the backtest meaningless. It is the
+# same mistake the Google News adapter makes structurally (see sources.yaml).
+# Production ingests general news and screens locally; the backtest must too.
+#
+# WINDOWS START AT 00:00 UTC ON THE DEATH DATE and run 48h, because P570 records
+# a DATE with no time of day. The first draft used 8h and missed Elizabeth II
+# entirely — she died ~16:30 UTC, eight hours after that window closed, and the
+# corpus was full of "Queen cancels meeting after doctors advise rest".
+positives:
+  - id: elizabeth-ii
+    wikidata_id: Q9682
+    display_name: Elizabeth II
+    aliases: ["Queen Elizabeth II", "Queen Elizabeth", "Elizabeth II"]
+    strong_aliases: ["Queen Elizabeth II", "Elizabeth II"]
+    query: '"Queen Elizabeth"'
+    window_hours: 48
+
+  - id: jimmy-carter
+    wikidata_id: Q23685
+    display_name: Jimmy Carter
+    aliases: ["Jimmy Carter", "James Earl Carter", "President Carter"]
+    strong_aliases: ["Jimmy Carter", "James Earl Carter"]
+    query: '"Jimmy Carter"'
+    window_hours: 48
+
+  - id: benedict-xvi
+    wikidata_id: Q2494
+    display_name: Benedict XVI
+    aliases: ["Pope Benedict XVI", "Benedict XVI", "Pope Benedict", "Joseph Ratzinger"]
+    strong_aliases: ["Pope Benedict XVI", "Benedict XVI"]
+    query: '"Pope Benedict"'
+    window_hours: 48
+
+  - id: pele
+    wikidata_id: Q12897
+    display_name: Pelé
+    aliases: ["Pele", "Pelé", "Edson Arantes"]
+    strong_aliases: ["Pele", "Pelé"]
+    query: '"Pele" OR "Pelé"'
+    window_hours: 48
+
+  - id: shinzo-abe
+    wikidata_id: Q132345
+    display_name: Shinzo Abe
+    aliases: ["Shinzo Abe", "Shinzō Abe", "Abe"]
+    strong_aliases: ["Shinzo Abe", "Shinzō Abe"]
+    query: '"Shinzo Abe"'
+    window_hours: 48
+
+  - id: henry-kissinger
+    wikidata_id: Q66107
+    display_name: Henry Kissinger
+    aliases: ["Henry Kissinger", "Kissinger"]
+    strong_aliases: ["Henry Kissinger"]
+    query: '"Henry Kissinger"'
+    window_hours: 48
+
+  - id: silvio-berlusconi
+    wikidata_id: Q11860
+    display_name: Silvio Berlusconi
+    aliases: ["Silvio Berlusconi", "Berlusconi"]
+    strong_aliases: ["Silvio Berlusconi"]
+    query: '"Berlusconi"'
+    window_hours: 48
+
+# Negative controls. Wikidata confirms NO P570 for these people, so ANY fire
+# against this coverage is a false positive by definition — no labelling
+# judgement required, which makes this the most objective test in the repo.
+negatives:
+  - id: trump-alive-control
+    wikidata_id: Q22686
+    display_name: Donald Trump
+    aliases: ["Donald Trump", "Donald J. Trump", "President Trump", "Trump"]
+    strong_aliases: ["Donald Trump", "Donald J. Trump"]
+    # A full 48h of ordinary Trump coverage. Realistic mixed input: obituaries of
+    # other people, "dead heat", "the bill is dead", and everything else the live
+    # run surfaced. Any fire here is a false positive by definition.
+    query: '"Donald Trump"'
+    start: "2025-06-02T00:00:00Z"
+    window_hours: 48
+
+  - id: carter-before-death
+    wikidata_id: Q23685
+    display_name: Jimmy Carter
+    aliases: ["Jimmy Carter", "President Carter"]
+    strong_aliases: ["Jimmy Carter"]
+    # Coverage from BEFORE he died, including hospice reporting — the hardest
+    # possible negative, since the coverage is genuinely about his mortality.
+    query: '"Jimmy Carter"'
+    start: "2023-02-20T00:00:00Z"
+    window_hours: 48

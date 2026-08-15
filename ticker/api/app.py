@@ -153,7 +153,7 @@ def create_app(state: ApiState) -> FastAPI:
                         break
                     try:
                         payload = await asyncio.wait_for(queue.get(), timeout=20.0)
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         # Comment frame: keeps proxies from reaping an idle
                         # stream, which would silently cost you the fastest
                         # notification channel.

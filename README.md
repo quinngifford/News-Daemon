@@ -61,14 +61,39 @@ done
 |---|---|
 | `test_funnel` | 23 adversarial headlines + retraction handling |
 | `test_live_negatives` | **39 real headlines captured from live feeds.** Enforces that no negative reaches the fire threshold while all true positives still fire. |
+| `test_replay` | **Generalisation across 7 other people** + the replay machinery |
 | `test_end_to_end` | Fast path, corroboration, source independence, attribution collapsing, retraction |
 | `test_x_rules` | X rule generation + all three cost guards, fully offline |
 | `test_api` | Dashboard, subscriptions, and SSE delivery over a real loopback server |
 
-`test_live_negatives` is the one that matters most. It exists because a live run
-found that a story about Senator Lindsey Graham dying — described in wire copy as
-a "Trump ally" — scored 0.922 and would have fired a **false CONFIRMED alert**.
-If you touch `ticker/screen/rules.py`, run it.
+Two of these matter more than the rest, and both exist because they caught a
+real bug that the others could not:
+
+- **`test_live_negatives`** — a live run found that a story about Senator Lindsey
+  Graham dying, described in wire copy as a "Trump ally", scored 0.922 and would
+  have fired a **false CONFIRMED alert**.
+- **`test_replay`** — every rule was tuned on Trump headlines, so it replays each
+  false-positive class against Elizabeth II, Jimmy Carter, Benedict XVI, Pelé,
+  Shinzō Abe, Kissinger and Berlusconi. It immediately found that
+  `"Breaking: Pele is dead"` scored **0.000** — the alias-suppression rule
+  treated `"Breaking:"` as a given name, which silently broke every mononym
+  target. Trump was unaffected only by accident.
+
+**If you touch `ticker/screen/rules.py`, run both.** They pull in opposite
+directions — one guards precision, the other recall — which is exactly why
+neither alone is sufficient.
+
+### Backtesting against real archived coverage
+
+```bash
+.venv/bin/python tools/replay.py --verify   # check death dates against Wikidata
+.venv/bin/python tools/replay.py --fetch    # download windows (slow: strict rate limit)
+.venv/bin/python tools/replay.py --misses   # replay from cache, list failures
+```
+
+Ground truth is read from Wikidata P570, never from memory — when the corpus was
+first drafted from recall, three of eleven Q-ids were wrong. Windows are cached
+under `var/replay_cache/`, so only the first run needs network.
 
 ## Configuration
 
@@ -135,17 +160,23 @@ Working and verified: ingest (12 live sources), screening funnel, corroboration
 and retraction, canary, dashboard, SSE, subscription storage, X adapter
 (offline-verified, disabled).
 
+Telegram delivery is confirmed working end-to-end.
+
 Not yet done:
 
-- **No git commit exists yet** — everything here is untracked. Worth doing first.
-- Notification channels have never delivered a real message. `--canary-full`
-  verifies them once credentials are set.
-- `tools/replay.py` (backtest against historical deaths, per ARCHITECTURE §8) is
-  not written. It is the intended way to tune thresholds with evidence.
+- **The replay corpus has not been downloaded.** `tools/replay.py` is written and
+  its machinery is tested offline, but GDELT's rate limit blocked the initial
+  fetch. Run `tools/replay.py --fetch` when the quota resets; it caches, so this
+  is a one-time cost.
+- **Web Push has never delivered a real message.** Needs the dashboard served
+  over HTTPS (see `deploy/caddy/`) and, on iPhone, the page added to the Home
+  Screen. Telegram is verified; this channel is not.
 - `reddit` / `hn` / `market_ws` adapters are configured but unimplemented.
   Reddit now needs OAuth (it 403s unauthenticated).
 - Second-region redundancy is untested. Note pay-per-use X allows only **one**
   stream connection, so only one box may enable that adapter.
+- `ANTHROPIC_API_KEY` is unset, so Stage-3 adjudication is off and the Stage-2
+  score decides alone. Borderline items are dropped rather than judged.
 
 ## Costs
 

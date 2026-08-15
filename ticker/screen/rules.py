@@ -135,11 +135,19 @@ _CAP_SEQ = re.compile(r"\b[A-Z][a-z'’-]{1,20}(?:\s+[A-Z][a-z'’-]{1,20}){0,3}
 # "Larry Trump", "George Trump", "Linda Marie Trump". These cannot be
 # enumerated in config, so they are detected structurally instead.
 _ALLOWED_BEFORE_SURNAME = {
-    "president", "mr", "mr.", "mrs", "mrs.", "ms", "ms.", "dr", "dr.", "sir",
-    "former", "ex", "expresident", "vice", "senator", "sen", "sen.", "rep",
-    "rep.", "gov", "gov.", "candidate", "nominee", "the", "a", "an", "and",
-    "of", "by", "with", "for", "to", "from", "at", "on", "in", "as", "than",
-    "vs", "vs.", "anti", "pro", "said", "says", "told",
+    "president", "mr", "mrs", "ms", "miss", "dr", "sir", "lord", "lady",
+    "former", "ex", "vice", "senator", "sen", "rep", "gov", "governor",
+    "candidate", "nominee", "king", "queen", "prince", "princess", "pope",
+    "the", "a", "an", "and", "or", "of", "by", "with", "for", "to", "from",
+    "at", "on", "in", "as", "than", "vs", "anti", "pro", "said", "says",
+    "told", "about", "after", "before", "when", "that", "how", "why",
+    # Headline prefix labels. Without these, "Breaking: <Name> is dead" has its
+    # alias suppressed as though "Breaking" were a given name — which silently
+    # destroyed recall for every mononym target (found by tests/test_replay.py
+    # on "Breaking: Pele is dead", scoring 0.000).
+    "breaking", "exclusive", "update", "updated", "live", "watch", "opinion",
+    "analysis", "report", "reports", "video", "photos", "developing", "alert",
+    "just", "news", "world", "politics", "obituary", "profile",
 }
 
 
@@ -180,9 +188,7 @@ def _person_candidates(text: str, exclude: list[tuple[int, int]]) -> list[tuple[
         first = words[0].lower().rstrip(".")
         # A single capitalised word is usually sentence-initial noise; require
         # either two words (First Last) or a preceding honorific.
-        if len(words) >= 2 and first not in _NOT_PERSON:
-            out.append((s, e))
-        elif first in _HONORIFICS:
+        if len(words) >= 2 and first not in _NOT_PERSON or first in _HONORIFICS:
             out.append((s, e))
         else:
             prev = text[max(0, s - 14):s].strip().split()
@@ -216,9 +222,29 @@ def foreign_given_name_spans(
         before = text[:m.start].rstrip()
         if not before:
             continue                     # start of text: no given name present
-        prev = before.split()[-1].strip("\"'([",)
-        if not prev or not prev[:1].isupper():
-            continue                     # lowercase ⇒ not a given name
+        tokens = before.split()
+        # Walk back over middle initials so "Philip H. Trump" is judged on
+        # "Philip", not on "H.". Without this the initial looks like a
+        # non-name, the alias survives, and a stranger's obituary scores 0.883.
+        # The same walk-back keeps "Donald J. Trump" working, since it resolves
+        # to "Donald" and matches a configured alias.
+        idx = len(tokens) - 1
+        while idx >= 0 and re.fullmatch(r"[A-Z]\.?", tokens[idx]):
+            idx -= 1
+        if idx < 0:
+            continue
+        raw_prev = tokens[idx]
+        # A token ending in ':' or '-' is a headline label or a hyphenated
+        # modifier ("Breaking:", "Exclusive:", "pro-"), never a given name.
+        if raw_prev.endswith((":", "-", "–", "—", "|")):
+            continue
+        prev = raw_prev.strip("\"'([{,.;!?)]}")
+        # Require something that actually looks like a name: alphabetic and
+        # capitalised. Being conservative here matters more than being thorough:
+        # a false suppression silently destroys recall for the one event that
+        # matters, while a missed collision only costs one LLM call.
+        if len(prev) < 2 or not prev[:1].isupper() or not prev.replace(".", "").isalpha():
+            continue
         if prev.lower() in _ALLOWED_BEFORE_SURNAME:
             continue
         if f"{prev.lower()} {m.term.lower()}" in alias_terms:

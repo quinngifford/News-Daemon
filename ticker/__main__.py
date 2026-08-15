@@ -18,6 +18,7 @@ import signal
 import sys
 
 from ticker.adjudicate.llm import Adjudicator
+from ticker.api.app import ApiState, create_app, serve
 from ticker.config import (
     build_automaton,
     load_satire_domains,
@@ -25,7 +26,6 @@ from ticker.config import (
     load_sources,
     load_targets,
 )
-from ticker.api.app import ApiState, create_app, serve
 from ticker.confirm.policy import Confirmer
 from ticker.ingest.registry import build_adapters, make_client
 from ticker.models import Item
@@ -165,6 +165,28 @@ async def run(dry_run: bool = False, duration: float | None = None) -> None:
             log.info("funnel: %s | queue=%d | confirmer=%s",
                      funnel.report(), queue.qsize(), confirmer.stats)
 
+    async def maintenance_loop() -> None:
+        """Prune the audit trail daily.
+
+        Every item reaching Stage 2 is recorded, so without this the database
+        grows without bound. On a box with ~3.4 GB free that is a slow-motion
+        outage: the daemon dies of a full disk at an unpredictable moment, which
+        is precisely the failure this system cannot have. Alerts are never
+        pruned — they are the point.
+        """
+        retain = int(settings.get("store", {}).get("retain_days", 90))
+        while True:
+            await asyncio.sleep(86400)
+            try:
+                await asyncio.to_thread(store.prune, retain)
+                size_mb = (
+                    store.path.stat().st_size / 1e6 if store.path.exists() else 0
+                )
+                log.info("pruned rows older than %dd; db now %.1f MB",
+                         retain, size_mb)
+            except Exception:
+                log.exception("maintenance prune failed")
+
     health = HealthMonitor(
         adapters,
         staleness_multiplier=settings.get("ops", {}).get("staleness_multiplier", 4.0),
@@ -179,6 +201,7 @@ async def run(dry_run: bool = False, duration: float | None = None) -> None:
         asyncio.create_task(screen_loop(), name="screen"),
         asyncio.create_task(health.run(), name="health"),
         asyncio.create_task(stats_loop(), name="stats"),
+        asyncio.create_task(maintenance_loop(), name="maintenance"),
     ]
 
     api_cfg = settings.get("api", {})
@@ -232,7 +255,7 @@ async def run(dry_run: bool = False, duration: float | None = None) -> None:
     if duration:
         try:
             await asyncio.wait_for(stop.wait(), timeout=duration)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             log.info("duration elapsed")
     else:
         await stop.wait()

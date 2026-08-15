@@ -48,6 +48,13 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4"]
 ignore = [
     "E501",    # long lines in prose comments are intentional
     "B008",    # FastAPI dependency style
+    # `class Stage(str, Enum)` rather than StrEnum, deliberately. Switching the
+    # base changes what str() returns for a member, and these values are written
+    # to SQLite and to the JSON the dashboard consumes — a silent format change
+    # in persisted data is not worth a style point. Access is always via .value.
+    "UP042",
+    "SIM105", # contextlib.suppress reads worse than try/except in these spots
+    "SIM117",
 ]
 
 [tool.ruff.lint.per-file-ignores]

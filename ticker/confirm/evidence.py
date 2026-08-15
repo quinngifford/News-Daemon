@@ -19,7 +19,7 @@ import time
 from dataclasses import dataclass, field
 
 from ticker.config import FirePolicy
-from ticker.models import Evidence, Tier, TargetState
+from ticker.models import Evidence, TargetState, Tier
 
 # Weight a single datapoint contributes at full strength (before decay).
 TIER_WEIGHTS: dict[Tier, float] = {

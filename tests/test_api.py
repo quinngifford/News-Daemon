@@ -114,7 +114,7 @@ async def sse_over_real_server(app, broadcaster: SseBroadcaster) -> None:
 
                 try:
                     await asyncio.wait_for(reader, timeout=8.0)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     reader.cancel()
 
         check(len(received) == 2, "SSE delivered both alerts", f"got {len(received)}")
@@ -130,7 +130,7 @@ async def sse_over_real_server(app, broadcaster: SseBroadcaster) -> None:
         server.should_exit = True
         try:
             await asyncio.wait_for(task, timeout=5.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             task.cancel()
 
 

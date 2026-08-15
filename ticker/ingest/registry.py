@@ -39,7 +39,6 @@ def build_adapters(
     targets: dict[str, Target],
     client: httpx.AsyncClient,
 ) -> list[SourceAdapter]:
-    all_aliases = [a for t in targets.values() for a in t.aliases]
     adapters: list[SourceAdapter] = []
 
     for cfg in sources:
