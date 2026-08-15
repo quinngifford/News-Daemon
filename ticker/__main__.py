@@ -32,6 +32,7 @@ from ticker.models import Item
 from ticker.notify.broadcast import SseBroadcaster
 from ticker.notify.dispatcher import Dispatcher
 from ticker.notify.telegram import TelegramChannel
+from ticker.notify.webhook import WebhookChannel
 from ticker.notify.webpush import WebPushChannel
 from ticker.ops.canary import Canary
 from ticker.ops.health import HealthMonitor, sd_notify
@@ -72,6 +73,7 @@ async def run(dry_run: bool = False, duration: float | None = None) -> None:
 
     # --- notification channels ------------------------------------------
     markets = [m for t in targets.values() for m in t.markets]
+    webhook: WebhookChannel | None = None
     # The SSE broadcaster is safe in dry-run: it only feeds an open dashboard,
     # it cannot buzz a phone or spend money.
     broadcaster = SseBroadcaster()
@@ -81,6 +83,14 @@ async def run(dry_run: bool = False, duration: float | None = None) -> None:
         enabled = nt.get("channels", ["telegram"])
         if "telegram" in enabled:
             channels.append(TelegramChannel(client, markets=markets))
+        if "webhook" in enabled:
+            wh = nt.get("webhook", {})
+            webhook = WebhookChannel(
+                client, store,
+                url=wh.get("url", ""),
+                timeout_s=wh.get("timeout_s", 5.0),
+            )
+            channels.append(webhook)
         if "webpush" in enabled:
             wp = nt.get("webpush", {})
             channels.append(
@@ -134,7 +144,25 @@ async def run(dry_run: bool = False, duration: float | None = None) -> None:
             # screening cannot keep up with ingest and you need to know.
             log.error("QUEUE FULL — dropping item from %s", item.source_id)
 
-    adapters = build_adapters(load_sources(), targets, client)
+    async def ops_alert(text: str) -> None:
+        """Operational messages about the WATCHER, not about world events.
+
+        A source going silent or the X budget cutting off is a failure you would
+        otherwise discover by missing an event. Routed to the same channels as
+        real alerts, because those are the ones you actually watch.
+        """
+        log.warning("OPS ALERT: %s", text.replace("\n", " ")[:160])
+        for ch in channels:
+            sender = getattr(ch, "send_text", None)
+            if sender is None:
+                continue          # SSE/webpush carry Alerts, not free text
+            try:
+                await sender(text)
+            except Exception:
+                log.exception("ops alert failed on channel %s", ch.name)
+
+    adapters = build_adapters(load_sources(), targets, client,
+                              on_ops_alert=ops_alert)
     if not adapters:
         log.error("no ingest adapters built — check config/sources.yaml")
         return
@@ -187,11 +215,20 @@ async def run(dry_run: bool = False, duration: float | None = None) -> None:
             except Exception:
                 log.exception("maintenance prune failed")
 
+    async def on_degraded(stale: list[dict]) -> None:
+        names = ", ".join(s["id"] for s in stale)
+        await ops_alert(
+            f"*Source(s) went silent*\n\n{names}\n\n"
+            f"A feed that stops updating looks exactly like a quiet news day, "
+            f"so this is reported explicitly. Other sources still running."
+        )
+
     health = HealthMonitor(
         adapters,
         staleness_multiplier=settings.get("ops", {}).get("staleness_multiplier", 4.0),
         heartbeat_interval_s=settings.get("ops", {}).get("heartbeat_interval_s", 15),
         store=store,
+        on_degraded=on_degraded,
     )
 
     tasks = [
@@ -203,6 +240,28 @@ async def run(dry_run: bool = False, duration: float | None = None) -> None:
         asyncio.create_task(stats_loop(), name="stats"),
         asyncio.create_task(maintenance_loop(), name="maintenance"),
     ]
+
+    if webhook is not None:
+        async def outbox_loop() -> None:
+            """Drain anything the backend owes us, forever.
+
+            Runs at startup too: if the box was rebooted while the backend was
+            down, those events are still queued and must go out now.
+            """
+            try:
+                n = await webhook.deliver_pending()
+                if n:
+                    log.info("webhook: delivered %d queued event(s) at startup", n)
+            except Exception:
+                log.exception("webhook startup drain failed")
+            while True:
+                await asyncio.sleep(15)
+                try:
+                    await webhook.deliver_pending()
+                except Exception:
+                    log.exception("webhook retry loop error")
+
+        tasks.append(asyncio.create_task(outbox_loop(), name="webhook-outbox"))
 
     api_cfg = settings.get("api", {})
     api_state = ApiState(

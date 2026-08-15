@@ -65,3 +65,9 @@ White House calls out Star Wars actor Mark Hamill for dead Trump image - Euronew
 
 # --- third-party hostility, not a death report ---
 Iran Wants Trump Dead - Mark Urban | Substack
+
+# --- compound headlines: two unrelated stories concatenated by the feed ---
+# Caught live at 0.815 (above the 0.80 fire threshold) by the running daemon.
+Takeaways from Trump's primetime speech. And, at least 2 dead in major Texas flooding - npr.org
+Trump signs order on tariffs. Separately, 3 dead in California wildfire
+Trump to visit Texas Friday | At least 12 dead after floods sweep through county

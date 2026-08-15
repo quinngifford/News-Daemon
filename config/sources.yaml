@@ -172,8 +172,16 @@ sources:
     bearer_token_env: TICKER_X_BEARER_TOKEN
 
     # --- cost controls. See docs/X_API_COSTS.md before changing these. ---
-    monthly_budget_usd: 10.0       # persisted in var/x_budget.json; survives restarts
-    max_posts_per_hour: 300        # rate breaker; normal volume is single digits/day
+    # $30/mo hard ceiling = 6,000 delivered posts at $0.005 each. Expected real
+    # usage with account-scoped rules is 150-900 posts/month ($0.75-$4.50), so
+    # this is ~7x headroom. On reaching it the adapter disconnects for the rest
+    # of the calendar month and sends you a Telegram notice — a silent shutoff
+    # would leave you believing you were covered when you were not.
+    monthly_budget_usd: 30.0       # persisted in var/x_budget.json; survives restarts
+    # Burst guard. Normal volume is single digits per DAY, so 150/hour is ~500x
+    # normal — loose enough never to trip by accident, tight enough that a
+    # runaway costs $0.75/hour rather than emptying the month's budget in one go.
+    max_posts_per_hour: 150
     breaker_cooldown_s: 1800
     sync_rules: true               # delete stale server-side rules (silent cost leak)
     dry_run: false                 # true = log the rules it WOULD install, connect to nothing

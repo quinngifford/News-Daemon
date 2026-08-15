@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>THE TICKER — Breaking News Dispatch</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#b22234">
+<meta name="description" content="Know first. Continuous watch on the wires.">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<!-- ═══════════════ GATE: SIGN IN ═══════════════ -->
+<div id="authScreen" class="gate">
+  <div class="flagbar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="gate-body">
+    <div class="gate-card">
+      <div class="nameplate">
+        <h1>The Ticker</h1>
+        <div class="sub">Est. 2026 &middot; Breaking News Dispatch</div>
+      </div>
+      <div class="rule-double"></div>
+      <div class="dateline-bar">
+        <span id="authDate">—</span>
+        <span>Vol. I &middot; No. 1</span>
+      </div>
+
+      <div class="stars">★ ★ ★</div>
+
+      <p class="lede">
+        When it happens, seconds decide everything. The Ticker keeps a continuous
+        watch on the wire services, the newsrooms, and the public record — and
+        tells you the moment it is confirmed.
+      </p>
+
+      <div class="tabs">
+        <button class="tab active" data-mode="login">Sign In</button>
+        <button class="tab" data-mode="signup">Register</button>
+      </div>
+
+      <form id="authForm" autocomplete="on">
+        <label class="field">
+          <span>Electronic Mail</span>
+          <input type="email" id="email" required autocomplete="email"
+                 placeholder="you@example.com">
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" id="password" required minlength="10"
+                 autocomplete="current-password" placeholder="Ten characters or more">
+        </label>
+        <div id="authError" class="notice" hidden></div>
+        <button type="submit" id="authSubmit" class="btn btn-red btn-block">
+          Sign In
+        </button>
+      </form>
+
+      <div class="rule-thin"></div>
+      <div class="colophon" style="margin:0;padding:0 0 10px">
+        One payment &middot; <span id="priceHint">$49.99</span> &middot; No subscription
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ GATE: SUBSCRIPTION ═══════════════ -->
+<div id="paywallScreen" class="gate" hidden>
+  <div class="flagbar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="gate-body">
+    <div class="gate-card">
+      <div class="nameplate">
+        <h1>Subscribe</h1>
+        <div class="sub">Lifetime Access &middot; One Payment</div>
+      </div>
+      <div class="rule-double"></div>
+
+      <div class="pricebox">
+        <div class="amt" id="priceBig">$49.99</div>
+        <div class="terms">Paid once &middot; Yours for good</div>
+      </div>
+
+      <ul class="benefits">
+        <li>Instant dispatch the moment an event is confirmed</li>
+        <li>Corroborated across independent sources before you are told</li>
+        <li>Automatic retraction if a report collapses</li>
+        <li>The full evidence trail behind every dispatch</li>
+        <li>Live market quote and the related wire</li>
+      </ul>
+
+      <button id="buyBtn" class="btn btn-red btn-block" style="margin-top:18px">
+        Purchase Access
+      </button>
+      <div id="buyError" class="notice" hidden style="margin-top:14px"></div>
+      <button id="devGrantBtn" class="btn btn-block" hidden style="margin-top:10px">
+        Dev — Grant Without Payment
+      </button>
+      <div style="text-align:center">
+        <button id="logoutFromPaywall" class="linkish">Sign out</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ THE PAPER ═══════════════ -->
+<div id="appScreen" hidden>
+  <div class="flagbar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="mh-title">The Ticker</div>
+      <span id="connPill" class="stamp">connecting</span>
+      <div class="mh-spacer"></div>
+      <button id="pushBtn" class="btn btn-sm">Alerts</button>
+      <button id="soundBtn" class="btn btn-sm">Sound Off</button>
+      <button id="logoutBtn" class="btn btn-sm">Exit</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="dateline-bar" style="border-top:0">
+      <span id="todayDate">—</span>
+      <span id="watchCount">—</span>
+    </div>
+
+    <!-- STATUS -->
+    <div class="board" id="board">
+      <div class="terms" style="font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint)">
+        Standing Watch
+      </div>
+      <div class="state" id="boardState">All Quiet</div>
+      <div class="detail" id="boardDetail">
+        No qualifying event detected. You will be told the instant one is.
+      </div>
+      <div class="since" id="boardSince"></div>
+    </div>
+
+    <!-- DISPATCHES -->
+    <div class="kicker">Dispatches</div>
+    <h2 class="head">The Wire Room</h2>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:2px">
+      <button id="testPushBtn" class="btn btn-sm">Send Test Dispatch</button>
+    </div>
+    <div id="alertList">
+      <div class="empty">No dispatches. That is the ordinary state of things.</div>
+    </div>
+
+    <!-- ART — hero -->
+    <div class="kicker">Illustration</div>
+    <div class="art hero" data-art="hero">
+      <div>
+        <div class="a-label">Art Placeholder — "hero"</div>
+        <div class="a-hint">
+          Replace this <code>&lt;div class="art hero"&gt;</code> in web/index.html<br>
+          with your <code>&lt;img&gt;</code> &middot; recommended 1200&times;480
+        </div>
+      </div>
+    </div>
+
+    <!-- MARKET -->
+    <div class="kicker">Market</div>
+    <div class="quote-row">
+      <span class="q-sym">$Trump</span>
+      <span class="q-last" id="chartLast">—</span>
+      <span class="q-chg" id="chartChange"></span>
+      <span class="q-spacer"></span>
+      <span class="chips">
+        <button class="chip active" data-days="7">7D</button>
+        <button class="chip" data-days="30">30D</button>
+        <button class="chip" data-days="90">90D</button>
+      </span>
+    </div>
+    <div class="chart-box">
+      <svg id="chart" viewBox="0 0 600 220" preserveAspectRatio="none"
+           role="img" aria-label="Price chart"></svg>
+      <div id="chartTip" class="chart-tip" hidden></div>
+    </div>
+    <div class="src-note" id="chartSource"></div>
+
+    <!-- WIRE -->
+    <div class="kicker">From the Wire</div>
+    <h2 class="head">Related Coverage</h2>
+    <div id="newsList"><div class="empty">Loading the wire…</div></div>
+
+    <!-- ART — secondary -->
+    <div class="kicker">Illustration</div>
+    <div class="art square" data-art="sidebar">
+      <div>
+        <div class="a-label">Art Placeholder — "sidebar"</div>
+        <div class="a-hint">recommended 600&times;600</div>
+      </div>
+    </div>
+
+    <div class="stars">★ ★ ★</div>
+    <div class="colophon">
+      The Ticker &middot; Published Continuously<br>
+      <span id="footStatus">—</span><br>
+      Dispatches are informational only and are not financial advice.
+    </div>
+  </div>
+  <div class="flagbar dark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

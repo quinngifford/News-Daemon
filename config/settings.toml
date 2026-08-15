@@ -24,8 +24,31 @@ fail_open_to_rules_score = true
 
 [notify]
 # Fan out in parallel; a slow channel must never delay a fast one.
-channels = ["telegram", "webpush", "websocket"]
+#
+# TOPOLOGY: this box is a private detector. The dashboard stays on 127.0.0.1 and
+# nothing inbound is exposed. Detected events go OUT to the public app backend,
+# which owns the web app, the mobile app, and user-facing push.
+#
+#   VPS (private)                      public backend
+#   ingest → screen → confirm ──POST──▶ /events ──▶ web + mobile users
+#
+#   webhook   → the product path: events to the public backend
+#   telegram  → your own operator channel, independent of the app
+#   websocket → local dashboard over SSH tunnel; never exposed
+#   webpush   → only if you ever serve the PWA yourself; the backend owns push
+#               for real users, so this is off by default
+channels = ["webhook", "telegram", "websocket"]
 retract_enabled = true
+
+[notify.webhook]
+# Where detected events are POSTed. Leave blank until the backend exists —
+# events are still queued in the outbox and delivered once it is set.
+# May also be supplied as TICKER_WEBHOOK_URL.
+url = ""
+timeout_s = 5.0
+# Shared secret for the HMAC signature, from TICKER_WEBHOOK_SECRET.
+# Without it the daemon refuses to send unsigned events and queues them instead.
+secret_env = "TICKER_WEBHOOK_SECRET"
 
 [notify.telegram]
 # export TICKER_TELEGRAM_TOKEN / TICKER_TELEGRAM_CHAT_ID — never commit secrets

@@ -99,6 +99,53 @@ class Store:
         )
         self.conn.commit()
 
+    # --- outbound delivery queue ----------------------------------------
+
+    def enqueue_outbox(self, event_id: str, state: str, payload: str,
+                       next_attempt_at: float) -> None:
+        """Queue an undelivered event. Idempotent on (event_id, state)."""
+        self.conn.execute(
+            "INSERT OR IGNORE INTO outbox (event_id, state, payload_json,"
+            " next_attempt_at, created_at) VALUES (?,?,?,?,?)",
+            (event_id, state, payload, next_attempt_at, time.time()),
+        )
+        self.conn.commit()
+
+    def pending_outbox(self, now: float, limit: int = 50) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT * FROM outbox WHERE delivered_at IS NULL AND next_attempt_at <= ?"
+            " ORDER BY created_at LIMIT ?",
+            (now, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def mark_outbox_delivered(self, row_id: int) -> None:
+        self.conn.execute(
+            "UPDATE outbox SET delivered_at = ? WHERE id = ?", (time.time(), row_id)
+        )
+        self.conn.commit()
+
+    def mark_outbox_failed(self, row_id: int, error: str,
+                           next_attempt_at: float) -> None:
+        self.conn.execute(
+            "UPDATE outbox SET attempts = attempts + 1, last_error = ?,"
+            " next_attempt_at = ? WHERE id = ?",
+            (error[:300], next_attempt_at, row_id),
+        )
+        self.conn.commit()
+
+    def outbox_stats(self) -> dict:
+        row = self.conn.execute(
+            "SELECT COUNT(*) AS total,"
+            " SUM(delivered_at IS NULL) AS pending,"
+            " MAX(attempts) AS max_attempts FROM outbox"
+        ).fetchone()
+        return {
+            "total": row["total"] or 0,
+            "pending": row["pending"] or 0,
+            "max_attempts": row["max_attempts"] or 0,
+        }
+
     # --- Web Push subscriptions -----------------------------------------
 
     def add_subscription(self, endpoint: str, keys: dict, user_agent: str = "") -> None:

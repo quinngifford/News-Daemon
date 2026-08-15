@@ -38,6 +38,7 @@ def build_adapters(
     sources: list[dict],
     targets: dict[str, Target],
     client: httpx.AsyncClient,
+    on_ops_alert=None,
 ) -> list[SourceAdapter]:
     adapters: list[SourceAdapter] = []
 
@@ -62,7 +63,10 @@ def build_adapters(
                     )
             elif kind == "twitter_stream":
                 adapters.append(
-                    TwitterStreamAdapter(cfg, client, CONFIG_DIR / "x_accounts.yaml")
+                    TwitterStreamAdapter(
+                        cfg, client, CONFIG_DIR / "x_accounts.yaml",
+                        on_ops_alert=on_ops_alert,
+                    )
                 )
             else:
                 # reddit / hn / twitter_stream / market_ws are scaffolded in

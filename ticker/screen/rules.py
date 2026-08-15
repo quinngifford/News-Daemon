@@ -130,6 +130,21 @@ _NOT_PERSON = {
 
 _CAP_SEQ = re.compile(r"\b[A-Z][a-z'’-]{1,20}(?:\s+[A-Z][a-z'’-]{1,20}){0,3}\b")
 
+# A sentence end, or a headline joiner (" - ", " | ", " — "). Feeds routinely
+# concatenate unrelated stories into one line:
+#   "Takeaways from Trump's speech. And, at least 2 dead in Texas flooding"
+# Token distance alone reads that as "Trump ... dead" and scored it 0.815 —
+# above the fire threshold — on a live feed. Words either side of a boundary are
+# not in the same statement and must not earn proximity credit.
+_SENTENCE_BREAK = re.compile(r"[.!?][\s\"'’)\]]+[A-Z\"'“]|\s[-–—|]\s")
+
+
+def _crosses_sentence(text: str, a: tuple[int, int], d: tuple[int, int]) -> bool:
+    lo, hi = (a[1], d[0]) if a[1] <= d[0] else (d[1], a[0])
+    if lo >= hi:
+        return False
+    return bool(_SENTENCE_BREAK.search(text[lo:hi]))
+
 # Words that may legitimately precede a bare surname alias. Anything else
 # capitalised in that slot is a DIFFERENT person who shares the surname —
 # "Larry Trump", "George Trump", "Linda Marie Trump". These cannot be
@@ -277,13 +292,33 @@ def extract_features(
     best_dist = math.inf
     best_death: tuple[int, int] | None = None
     best_alias: tuple[int, int] | None = None
+    any_pair = False
     for a in alias_spans:
         at = idx.token_of(a[0])
         for d in death_spans:
+            any_pair = True
+            # Only pairs inside the same statement earn proximity credit.
+            if _crosses_sentence(text, a, d):
+                continue
             dist = abs(idx.token_of(d[0]) - at)
             if dist < best_dist:
                 best_dist, best_death, best_alias = dist, d, a
-    if best_dist is math.inf:
+
+    # Every alias/death pair was split by a sentence break: the death word
+    # belongs to a different statement entirely.
+    f["cross_sentence"] = 1.0 if (any_pair and best_death is None) else 0.0
+    if best_death is None and any_pair:
+        # Fall back to the nearest pair purely so downstream features
+        # (metaphor, quoting) still have a death span to inspect.
+        for a in alias_spans:
+            at = idx.token_of(a[0])
+            for d in death_spans:
+                dist = abs(idx.token_of(d[0]) - at)
+                if dist < best_dist:
+                    best_dist, best_death, best_alias = dist, d, a
+    if f["cross_sentence"]:
+        f["proximity"] = 0.15        # different statement: no real adjacency
+    elif best_dist is math.inf:
         f["proximity"] = 0.0
     elif best_dist <= proximity_window:
         # linear decay inside the window: adjacent is much better than 12 apart
@@ -390,6 +425,10 @@ WEIGHTS: dict[str, float] = {
     # Live data showed these two are decisive, and both must be able to drag a
     # score that has proximity + strong_alias + in_headline (+5.07) below the
     # 0.80 min_score that permits firing.
+    # Compound/concatenated headlines. Found live at 0.815 — above the fire
+    # threshold — on an NPR line that joined a Trump speech story to a Texas
+    # flooding death toll.
+    "cross_sentence": -3.0,
     "subject_is_other": -4.6,
     "generic_subject": -3.4,
     "future_cond": -4.2,

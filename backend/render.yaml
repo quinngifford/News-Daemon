@@ -1,0 +1,63 @@
+# Render blueprint. In the Render dashboard: New → Blueprint → point at this
+# repo → it reads this file and creates both the web service and the database.
+#
+# rootDir matters: this backend lives in a subdirectory of the detector repo.
+
+services:
+  - type: web
+    name: ticker-api
+    runtime: python
+    plan: starter                 # free tier sleeps after inactivity — see README
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # One worker on a small instance. Raise --workers when you outgrow it; the
+    # app is stateless, so that is the only change needed.
+    startCommand: >-
+      alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ENV
+        value: prod
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+
+      # Render injects the connection string from the database below.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ticker-db
+          property: connectionString
+
+      # Generated once by Render and kept stable across deploys.
+      - key: JWT_SECRET
+        generateValue: true
+
+      # BASE_URL must be the real public URL or Stripe redirects break.
+      - key: BASE_URL
+        sync: false
+      # Must equal TICKER_WEBHOOK_SECRET on the detector VPS.
+      - key: INGEST_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+
+      # Belt and braces: main.py also refuses to boot in prod if this is true.
+      - key: ALLOW_DEV_GRANT
+        value: "false"
+
+databases:
+  - name: ticker-db
+    plan: basic-256mb
+    databaseName: ticker
+    user: ticker

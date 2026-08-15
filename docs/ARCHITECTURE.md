@@ -388,6 +388,55 @@ so you can tighten it for figures with a history of hoaxes.
 
 ## 6. ⑤ Notify
 
+### 6.0 Topology: this box is a private detector
+
+The VPS is not a web server. Nothing inbound is exposed, the dashboard binds
+`127.0.0.1` only, and administration is over SSH. Its single outward job is
+publishing detected events to a public backend that owns the web app, the mobile
+app, and user-facing push.
+
+```
+  VPS  (private, no inbound ports)              public app backend
+  ┌────────────────────────────────┐
+  │ ingest → screen → confirm      │            ┌──────────────────┐
+  │            │                   │  signed    │  POST /events    │
+  │            ├─ webhook  ────────┼──POST─────▶│  dedupe by       │──▶ web app
+  │            ├─ telegram ────────┼──▶ you     │  (event_id,state)│──▶ mobile push
+  │            └─ SSE → 127.0.0.1  │            └──────────────────┘
+  └────────────────────────────────┘
+```
+
+Why this split is the right one: the detector needs uptime and low latency but
+no public surface, while the app backend needs to scale to users and handle
+APNs/FCM credentials. Coupling them would mean exposing the box that must never
+go down.
+
+**Telegram stays** as the operator channel — it reaches you directly even if the
+backend is broken, which is exactly when you need to know. **Web Push from the
+VPS is off by default**; it only makes sense if you ever serve the PWA yourself,
+and the backend owns push for real users.
+
+The delivery contract lives in `ticker/notify/webhook.py`:
+
+- **Signed** — `X-Ticker-Signature: t=<unix>,v1=<hmac-sha256>` over
+  `"{timestamp}.{body}"`. The timestamp is inside the signed material, so a
+  captured request cannot be replayed later. `webhook.verify()` is the reference
+  implementation to mirror on the backend.
+- **Idempotent** — every delivery carries `event_id` and an `Idempotency-Key` of
+  `{event_id}:{state}`. Treat that pair as a primary key; retries and a
+  redundant second box must not double-notify.
+- **Durable** — a failed POST goes to a SQLite `outbox` and is retried with
+  exponential backoff (capped at 5 min) until delivered, *across restarts*. The
+  POST is attempted before any disk write, so durability costs latency only when
+  it is actually needed. If the backend is redeploying at the moment the event
+  fires — the moment it is most likely to be under load — the event waits rather
+  than vanishing.
+- **Fail-closed on auth** — with a URL but no secret, the daemon queues rather
+  than sending unsigned events the backend could not trust.
+
+Payload is `ticker.alert.v1`; treat schema changes as additive only.
+
+
 Fan out to all channels **in parallel** (`asyncio.gather`) — never sequentially,
 since a slow channel must not delay a fast one. Idempotent on `event_id`, so
 redundant daemons on two boxes cannot double-alert you.

@@ -21,6 +21,19 @@ tiered screening funnel that keeps AI cost at effectively zero, and — importan
 python3 -m venv .venv && .venv/bin/pip install -e .
 ```
 
+**See it work.** One command, no setup, narrates every step on real code:
+
+```bash
+.venv/bin/python tools/demo.py
+```
+
+It shows what's being watched, walks one headline through each screening stage
+with the score breakdown, runs ten hard cases that fooled earlier versions,
+screens live BBC headlines pulled that second, then simulates a real event end to
+end — including the exact message that would reach your phone and the retraction
+that replaces it. Add `--send` to receive a real drill alert; without it nothing
+is sent.
+
 Verify the pipeline without touching the network or spending anything:
 
 ```bash
@@ -33,7 +46,13 @@ Watch live feeds flow through the funnel without any risk of notifying you:
 .venv/bin/python -m ticker --dry-run --duration 120
 ```
 
-Then open the dashboard at <http://127.0.0.1:8080>.
+The dashboard is bound to `127.0.0.1` only. To view it from your laptop:
+
+```bash
+ssh -L 8080:127.0.0.1:8080 ubuntu@<this-host>
+```
+
+then open <http://127.0.0.1:8080> locally.
 
 ## Commands
 
@@ -46,13 +65,15 @@ Then open the dashboard at <http://127.0.0.1:8080>.
 | `python -m ticker --canary-full` | Same, but also dispatches through **live** channels |
 | `python tools/validate_sources.py` | Re-probe every configured feed URL |
 | `python tools/gen_vapid_keys.py` | Generate the Web Push VAPID keypair (run once) |
+| `python tools/demo.py` | Narrated walkthrough of the whole pipeline on real code |
 
 ## Tests
 
 None of these touch the network or cost money.
 
 ```bash
-for t in test_funnel test_x_rules test_end_to_end test_live_negatives test_api; do
+for t in test_funnel test_x_rules test_end_to_end test_live_negatives \
+         test_api test_replay test_webhook; do
   .venv/bin/python -m tests.$t
 done
 ```
@@ -65,6 +86,7 @@ done
 | `test_end_to_end` | Fast path, corroboration, source independence, attribution collapsing, retraction |
 | `test_x_rules` | X rule generation + all three cost guards, fully offline |
 | `test_api` | Dashboard, subscriptions, and SSE delivery over a real loopback server |
+| `test_webhook` | Signing, replay rejection, and **event durability across a backend outage + restart** |
 
 Two of these matter more than the rest, and both exist because they caught a
 real bug that the others could not:
@@ -114,26 +136,59 @@ Secrets go in `deploy/ticker.env` (gitignored):
 cp deploy/ticker.env.example deploy/ticker.env && chmod 600 deploy/ticker.env
 ```
 
+## Topology
+
+This box is a **private detector**. Nothing inbound is exposed, the dashboard
+binds `127.0.0.1` only, and you administer it over SSH. Its one outward job is
+publishing detected events to a public backend that owns the web app, the mobile
+app, and user-facing push.
+
+```
+  VPS (private, no inbound ports)          public app backend
+  ingest → screen → confirm ──signed POST──▶ /events ──▶ web app + mobile push
+                     │
+                     └─ Telegram ──▶ you directly (operator channel)
+```
+
 ## Notification channels
 
 Fan-out is parallel and idempotent on `event_id`, so a slow channel never delays
 a fast one and a second box cannot double-alert you.
 
-- **Dashboard SSE** — always on, lowest latency of all (no vendor push in the
-  path), and the only channel that can guarantee an audible alarm. Requires a tab
-  open with sound enabled.
-- **Telegram** — fastest to set up, no store review, works on phone and desktop.
-  Set `TICKER_TELEGRAM_TOKEN` / `TICKER_TELEGRAM_CHAT_ID`.
-- **Web Push (PWA)** — real push with the app closed. Run
-  `tools/gen_vapid_keys.py`, then serve over HTTPS.
-  **On iPhone this only works if the page is added to the Home Screen** (iOS
-  16.4+); a Safari tab will never receive a push.
+- **Webhook → your backend** — the product path. Signed, idempotent, and durable:
+  a failed POST is queued in SQLite and retried until delivered, surviving
+  restarts. Set `TICKER_WEBHOOK_URL` and `TICKER_WEBHOOK_SECRET`.
+- **Telegram** — your own operator channel, independent of the backend, so it
+  still reaches you when the backend is the thing that broke. Set
+  `TICKER_TELEGRAM_TOKEN` / `TICKER_TELEGRAM_CHAT_ID`.
+- **Dashboard SSE** — local only, over an SSH tunnel:
+  `ssh -L 8080:127.0.0.1:8080 <host>` then open <http://127.0.0.1:8080>.
+- **Web Push (PWA)** — off by default. Only relevant if you serve the PWA
+  yourself; the backend owns push for real users.
 
-Whichever you use, allow-list it in your phone's Focus / Do-Not-Disturb rules.
-An alert that is silently suppressed at 04:00 is the failure this whole project
-exists to avoid.
+Allow-list Telegram in your phone's Focus / Do-Not-Disturb rules. An alert that
+is silently suppressed at 04:00 is the failure this whole project exists to
+avoid.
+
+### Backend contract
+
+`POST` body is `ticker.alert.v1` JSON. Verify the signature exactly as
+`ticker/notify/webhook.py:verify()` does — HMAC-SHA256 over `"{t}.{body}"`, with
+the timestamp checked against a tolerance so captured requests cannot be
+replayed. Dedupe on `(event_id, state)`; the `Idempotency-Key` header carries
+both so you need not parse the body first.
 
 ## Running as a service
+
+Already installed and running. To manage it:
+
+```bash
+sudo systemctl status ticker.service
+sudo journalctl -u ticker.service -f
+sudo systemctl restart ticker.service
+```
+
+To install from scratch on another box:
 
 ```bash
 sudo cp deploy/systemd/*.service deploy/systemd/*.timer /etc/systemd/system/
@@ -168,9 +223,12 @@ Not yet done:
   its machinery is tested offline, but GDELT's rate limit blocked the initial
   fetch. Run `tools/replay.py --fetch` when the quota resets; it caches, so this
   is a one-time cost.
-- **Web Push has never delivered a real message.** Needs the dashboard served
-  over HTTPS (see `deploy/caddy/`) and, on iPhone, the page added to the Home
-  Screen. Telegram is verified; this channel is not.
+- **The public app backend does not exist yet.** The webhook channel is built
+  and tested against a mock receiver; set `TICKER_WEBHOOK_URL` /
+  `TICKER_WEBHOOK_SECRET` once it does. Until then events queue in the outbox
+  rather than being lost.
+- **The mobile app is not started.** The PWA installs to a home screen today;
+  a native app would add critical alerts that pierce silent mode.
 - `reddit` / `hn` / `market_ws` adapters are configured but unimplemented.
   Reddit now needs OAuth (it 403s unauthenticated).
 - Second-region redundancy is untested. Note pay-per-use X allows only **one**

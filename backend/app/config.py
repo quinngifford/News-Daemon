@@ -1,0 +1,98 @@
+"""Configuration. Everything comes from the environment, nothing is hardcoded.
+
+Runs on SQLite with zero infrastructure for development, and on Postgres +
+Redis in production by changing two environment variables. That is deliberate:
+the code path is identical, so what you test locally is what ships.
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+    # --- core ---------------------------------------------------------
+    app_name: str = "Ticker"
+    env: str = "dev"                       # dev | prod
+    base_url: str = "http://127.0.0.1:8000"
+
+    # SQLite for dev, e.g. postgresql+psycopg://user:pw@host/db for prod.
+    database_url: str = "sqlite:///./var/backend.db"
+
+    # Empty = in-process fanout (single replica). Set a redis:// URL to run
+    # multiple app servers behind a load balancer; see app/fanout.py.
+    redis_url: str = ""
+
+    # --- auth ---------------------------------------------------------
+    # MUST be overridden in production. Startup refuses to boot with the
+    # default value when env=prod.
+    jwt_secret: str = "dev-only-insecure-change-me"
+    jwt_algorithm: str = "HS256"
+    access_token_ttl_s: int = 60 * 60 * 24 * 30      # 30 days; mobile-friendly
+
+    # --- billing ------------------------------------------------------
+    price_cents: int = 4999                # $49.99 one-time
+    currency: str = "usd"
+    stripe_secret_key: str = ""
+    stripe_publishable_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_id: str = ""              # optional; falls back to ad-hoc price
+    checkout_success_path: str = "/?paid=1"
+    checkout_cancel_path: str = "/?canceled=1"
+
+    # Lets you use the product before Stripe exists. Refuses to apply when
+    # env=prod, so it cannot become an accidental free-for-all in production.
+    allow_dev_grant: bool = True
+
+    # --- ingest from the detector -------------------------------------
+    # Shared secret with the VPS. Must equal TICKER_WEBHOOK_SECRET there.
+    ingest_secret: str = ""
+    ingest_tolerance_s: int = 300          # replay window for signed requests
+
+    # --- web push -----------------------------------------------------
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:ops@example.com"
+
+    # --- content ------------------------------------------------------
+    news_feed_urls: str = (
+        "https://feeds.bbci.co.uk/news/world/rss.xml,"
+        "https://www.theguardian.com/us-news/rss"
+    )
+    news_cache_ttl_s: int = 300
+    market_cache_ttl_s: int = 60
+
+    @property
+    def is_prod(self) -> bool:
+        return self.env.lower() in ("prod", "production")
+
+    @property
+    def sqlalchemy_url(self) -> str:
+        """Normalise the URL Render (and Heroku) hand out.
+
+        They inject `postgres://…`, which SQLAlchemy 2.0 refuses to parse, and
+        even `postgresql://` picks the psycopg2 driver we do not install. Doing
+        this here means the deploy config can paste the provider's string
+        verbatim instead of everyone remembering to rewrite it.
+        """
+        url = self.database_url
+        if url.startswith("postgres://"):
+            url = "postgresql+psycopg://" + url[len("postgres://"):]
+        elif url.startswith("postgresql://"):
+            url = "postgresql+psycopg://" + url[len("postgresql://"):]
+        return url
+
+    @property
+    def news_urls(self) -> list[str]:
+        return [u.strip() for u in self.news_feed_urls.split(",") if u.strip()]
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

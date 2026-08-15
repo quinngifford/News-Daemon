@@ -232,9 +232,15 @@ class TwitterStreamAdapter(SourceAdapter):
         client: httpx.AsyncClient,
         accounts_path: Path,
         state_dir: Path = Path("var"),
+        on_ops_alert=None,
     ) -> None:
         super().__init__(config)
         self.client = client
+        # Async callable(str). Tells the operator when this adapter shuts itself
+        # off. Without it, hitting the budget looks identical to a quiet news
+        # month — you would think X was covering you when it had stopped.
+        self.on_ops_alert = on_ops_alert
+        self._budget_notified_month: str | None = None
         self.bearer = os.environ.get(
             config.get("bearer_token_env", "TICKER_X_BEARER_TOKEN"), ""
         )
@@ -329,6 +335,7 @@ class TwitterStreamAdapter(SourceAdapter):
         if self.budget.exhausted:
             log.error("x: monthly budget exhausted (%s) — not connecting",
                       self.budget.status())
+            await self._notify_budget_exhausted()
             await asyncio.sleep(3600)
             return
 
@@ -364,6 +371,7 @@ class TwitterStreamAdapter(SourceAdapter):
                 if self.budget.exhausted:
                     log.error("x: budget cap hit mid-stream (%s) — disconnecting",
                               self.budget.status())
+                    await self._notify_budget_exhausted()
                     return
 
                 item = self._to_item(line)
@@ -418,6 +426,32 @@ class TwitterStreamAdapter(SourceAdapter):
                 "matched_rules": [r.get("tag") for r in payload.get("matching_rules", [])],
             },
         )
+
+    async def _notify_budget_exhausted(self) -> None:
+        """Tell the operator, once per calendar month.
+
+        Once-per-month rather than once-per-attempt: the run loop retries hourly,
+        and a message every hour for the rest of the month would train you to
+        ignore exactly the channel that carries real alerts.
+        """
+        if self._budget_notified_month == self.budget.month:
+            return
+        self._budget_notified_month = self.budget.month
+        st = self.budget.status()
+        msg = (
+            f"*X stream auto-disabled*\n\n"
+            f"Monthly cap of ${st['cap_usd']:.2f} reached "
+            f"(${st['spent_usd']:.2f} across {st['posts']} posts).\n\n"
+            f"The X adapter is off until {st['month']} rolls over. "
+            f"Every other source is unaffected and still running.\n\n"
+            f"To raise the cap, edit `monthly_budget_usd` in config/sources.yaml."
+        )
+        log.error("x: %s", msg.replace("*", "").replace("\n", " "))
+        if self.on_ops_alert:
+            try:
+                await self.on_ops_alert(msg)
+            except Exception:  # noqa: BLE001
+                log.exception("x: failed to send budget notification")
 
     def health(self) -> dict:
         h = super().health()

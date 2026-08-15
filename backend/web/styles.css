@@ -1,0 +1,301 @@
+/* TICKER — American broadsheet.
+ *
+ * Newsprint stock, Old Glory Red (#B22234) and Old Glory Blue (#3C3B6E) taken
+ * from the actual flag specification, hard hairline rules, no rounded corners,
+ * no gradients. Single column, one continuous scroll.
+ *
+ * System fonts only — no CDN, no webfont flash, works offline. */
+
+:root {
+  --paper:    #f5f1e8;
+  --paper-2:  #ebe5d8;
+  --ink:      #16130f;
+  --ink-soft: #4a443c;
+  --ink-faint:#877e70;
+  --red:      #b22234;
+  --blue:     #3c3b6e;
+  --rule:     #16130f;
+  --hair:     #c9c0ad;
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
+           Georgia, "Times New Roman", serif;
+  --condensed: "Haettenschweiler", "Arial Narrow Bold", "Arial Narrow",
+               "Helvetica Neue", Impact, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
+
+  --col: 720px;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  /* Faint fibre texture so it reads as stock, not a flat fill. */
+  background-image:
+    repeating-linear-gradient(0deg, rgba(22,19,15,.014) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(22,19,15,.010) 0 1px, transparent 1px 4px);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.58;
+}
+[hidden] { display: none !important; }
+a { color: var(--blue); }
+
+.wrap { max-width: var(--col); margin: 0 auto; padding: 0 20px; }
+
+/* ── flag bar ───────────────────────────────────────────────── */
+.flagbar { height: 6px; display: flex; }
+.flagbar i { flex: 1; display: block; }
+.flagbar i:nth-child(odd)  { background: var(--red); }
+.flagbar i:nth-child(even) { background: var(--paper-2); }
+.flagbar.dark i:nth-child(even) { background: var(--blue); }
+
+/* ── nameplate ──────────────────────────────────────────────── */
+.nameplate { text-align: center; padding: 26px 0 0; }
+.nameplate h1 {
+  font-family: var(--condensed);
+  font-size: clamp(52px, 15vw, 104px);
+  line-height: .84;
+  letter-spacing: -.02em;
+  margin: 0;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+.nameplate .sub {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: 12px;
+}
+.rule-double { border-top: 3px solid var(--rule); border-bottom: 1px solid var(--rule);
+               height: 4px; margin: 14px 0; }
+.rule-thin { border-top: 1px solid var(--hair); margin: 22px 0; }
+.dateline-bar {
+  display: flex; justify-content: space-between; gap: 12px;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-soft);
+  padding: 7px 0; border-bottom: 1px solid var(--rule);
+}
+.stars { text-align: center; color: var(--red); letter-spacing: .7em;
+         font-size: 12px; padding: 16px 0 4px; }
+
+/* ── section headings ───────────────────────────────────────── */
+.kicker {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .28em;
+  text-transform: uppercase; color: var(--red); font-weight: 700;
+  display: flex; align-items: center; gap: 12px; margin: 34px 0 10px;
+}
+.kicker::after { content: ""; flex: 1; border-top: 1px solid var(--rule); }
+h2.head {
+  font-family: var(--condensed); text-transform: uppercase; font-weight: 400;
+  font-size: 34px; line-height: .95; margin: 0 0 6px; letter-spacing: -.01em;
+}
+
+/* ── buttons / forms ────────────────────────────────────────── */
+.btn {
+  font-family: var(--condensed); text-transform: uppercase;
+  font-size: 19px; letter-spacing: .06em;
+  padding: 13px 22px; border: 2px solid var(--ink); background: var(--paper);
+  color: var(--ink); cursor: pointer; border-radius: 0;
+  transition: background .12s, color .12s;
+}
+.btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn-red { background: var(--red); border-color: var(--red); color: #fff; }
+.btn-red:hover:not(:disabled) { background: #8d1a29; border-color: #8d1a29; color: #fff; }
+.btn-block { display: block; width: 100%; }
+.btn-sm { font-size: 14px; padding: 7px 12px; border-width: 1px; }
+.linkish {
+  background: none; border: 0; color: var(--ink-soft); cursor: pointer;
+  font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .12em; text-decoration: underline; margin-top: 18px;
+}
+
+.field { display: block; margin-bottom: 15px; }
+.field span {
+  display: block; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft);
+  margin-bottom: 5px;
+}
+.field input {
+  width: 100%; font-family: var(--serif); font-size: 17px; padding: 11px 12px;
+  background: #fffdf7; border: 2px solid var(--ink); border-radius: 0; color: var(--ink);
+}
+.field input:focus { outline: 3px solid rgba(60,59,110,.28); outline-offset: 1px; }
+
+.notice {
+  border-left: 4px solid var(--red); background: rgba(178,34,52,.07);
+  padding: 10px 13px; font-size: 14.5px; margin-bottom: 14px;
+}
+
+/* ── gate screens ───────────────────────────────────────────── */
+.gate { min-height: 100vh; display: flex; flex-direction: column; }
+.gate-body { flex: 1; display: grid; place-items: center; padding: 30px 20px 60px; }
+.gate-card { width: 100%; max-width: 460px; }
+.lede { font-size: 19px; line-height: 1.5; }
+.lede::first-letter {
+  float: left; font-family: var(--condensed); font-size: 62px; line-height: .78;
+  padding: 4px 8px 0 0; color: var(--red);
+}
+.tabs { display: flex; border: 2px solid var(--ink); margin: 22px 0 20px; }
+.tab {
+  flex: 1; padding: 10px; font-family: var(--mono); font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase; cursor: pointer;
+  background: var(--paper); border: 0; color: var(--ink-soft);
+}
+.tab + .tab { border-left: 2px solid var(--ink); }
+.tab.active { background: var(--ink); color: var(--paper); }
+
+.pricebox { border: 3px double var(--ink); padding: 18px; text-align: center; margin: 20px 0; }
+.pricebox .amt {
+  font-family: var(--condensed); font-size: 62px; line-height: 1; color: var(--red);
+}
+.pricebox .terms {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--ink-soft); margin-top: 6px;
+}
+ul.benefits { list-style: none; padding: 0; margin: 0 0 6px; }
+ul.benefits li {
+  padding: 9px 0 9px 28px; position: relative; border-bottom: 1px solid var(--hair);
+  font-size: 15.5px;
+}
+ul.benefits li:last-child { border-bottom: 0; }
+ul.benefits li::before {
+  content: "★"; position: absolute; left: 4px; top: 9px; color: var(--red); font-size: 13px;
+}
+
+/* ── masthead (app) ─────────────────────────────────────────── */
+.masthead { border-bottom: 2px solid var(--rule); background: var(--paper); }
+.masthead-inner {
+  max-width: var(--col); margin: 0 auto; padding: 10px 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.mh-title {
+  font-family: var(--condensed); font-size: 30px; text-transform: uppercase;
+  line-height: 1; letter-spacing: -.01em;
+}
+.mh-spacer { flex: 1; }
+.stamp {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em;
+  text-transform: uppercase; border: 1px solid var(--ink-faint);
+  color: var(--ink-soft); padding: 3px 7px;
+}
+.stamp.live { color: var(--blue); border-color: var(--blue); }
+.stamp.warn { color: var(--red); border-color: var(--red); }
+
+/* ── status board ───────────────────────────────────────────── */
+.board {
+  border: 3px double var(--ink); padding: 20px; text-align: center; margin-top: 20px;
+}
+.board .state {
+  font-family: var(--condensed); font-size: clamp(34px, 9vw, 58px);
+  text-transform: uppercase; line-height: .95; margin: 4px 0 6px;
+}
+.board .detail { color: var(--ink-soft); font-size: 15px; }
+.board .since {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-faint); margin-top: 10px;
+}
+.board.alerting { border-color: var(--red); background: rgba(178,34,52,.07); }
+.board.alerting .state { color: var(--red); }
+
+/* ── dispatches (alerts) ────────────────────────────────────── */
+.dispatch { padding: 16px 0; border-bottom: 1px solid var(--hair); }
+.dispatch:last-child { border-bottom: 0; }
+.dispatch.new { animation: ink 1.8s ease-out; }
+@keyframes ink { from { background: rgba(178,34,52,.16); } to { background: transparent; } }
+.d-top {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; margin-bottom: 5px;
+}
+.badge { padding: 2px 7px; color: #fff; font-weight: 700; }
+.badge.confirmed { background: var(--red); }
+.badge.likely    { background: #a8700f; }
+.badge.watch     { background: var(--blue); }
+.badge.retracted { background: var(--ink-faint); text-decoration: line-through; }
+.d-head {
+  font-family: var(--condensed); font-size: 25px; line-height: 1.05;
+  text-transform: uppercase; margin: 2px 0 5px;
+}
+.d-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+.empty {
+  padding: 26px 0; text-align: center; color: var(--ink-faint);
+  font-style: italic; font-size: 15px;
+}
+
+/* ── quote / market ─────────────────────────────────────────── */
+.quote-row {
+  display: flex; align-items: baseline; gap: 12px; border-bottom: 2px solid var(--rule);
+  padding-bottom: 8px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.q-sym { font-family: var(--condensed); font-size: 30px; text-transform: uppercase; }
+.q-last { font-family: var(--mono); font-size: 24px; }
+.q-chg { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+.q-chg.up { color: #17632f; }
+.q-chg.down { color: var(--red); }
+.q-spacer { flex: 1; }
+.chips { display: flex; gap: 0; border: 1px solid var(--ink); }
+.chip {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em; padding: 5px 10px;
+  background: var(--paper); border: 0; cursor: pointer; color: var(--ink-soft);
+}
+.chip + .chip { border-left: 1px solid var(--ink); }
+.chip.active { background: var(--ink); color: var(--paper); }
+.chart-box { position: relative; }
+#chart { width: 100%; height: 190px; display: block; overflow: visible; }
+.chart-tip {
+  position: absolute; pointer-events: none; background: var(--ink); color: var(--paper);
+  padding: 4px 8px; font-family: var(--mono); font-size: 10.5px; white-space: nowrap;
+}
+.src-note {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-faint); text-align: right; margin-top: 4px;
+}
+
+/* ── wire (news) ────────────────────────────────────────────── */
+.wire-item {
+  display: block; padding: 12px 0; border-bottom: 1px solid var(--hair);
+  color: inherit; text-decoration: none;
+}
+.wire-item:last-child { border-bottom: 0; }
+.wire-item:hover .w-title { text-decoration: underline; }
+.w-title { font-size: 16.5px; line-height: 1.35; font-weight: 600; }
+.w-src {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-faint); margin-top: 3px;
+}
+
+/* ── art placeholders ───────────────────────────────────────── */
+.art {
+  border: 2px dashed var(--ink-faint); display: grid; place-items: center;
+  text-align: center; padding: 34px 20px; background: var(--paper-2);
+}
+.art.hero { min-height: 220px; }
+.art.square { aspect-ratio: 3 / 2; }
+.art .a-label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .22em;
+  text-transform: uppercase; font-weight: 700; color: var(--ink-soft);
+}
+.art .a-hint { font-size: 13px; color: var(--ink-faint); margin-top: 8px; line-height: 1.6; }
+
+/* ── colophon ───────────────────────────────────────────────── */
+.colophon {
+  margin-top: 40px; border-top: 3px double var(--rule); padding: 18px 0 44px;
+  text-align: center; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint);
+  line-height: 2;
+}
+
+@media (max-width: 620px) {
+  body { font-size: 16px; }
+  .wrap { padding: 0 14px; }
+  .masthead-inner { padding: 8px 14px; gap: 8px; }
+  .mh-title { font-size: 22px; }
+  .d-head { font-size: 21px; }
+  .board { padding: 16px; }
+}

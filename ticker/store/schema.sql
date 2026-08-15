@@ -56,6 +56,30 @@ CREATE TABLE IF NOT EXISTS alerts (
 );
 CREATE INDEX IF NOT EXISTS idx_alerts_time ON alerts(t_wall DESC);
 
+-- Outbound delivery queue to the public app backend.
+--
+-- This exists because the alert reaching your users is the entire product. If
+-- the backend is down, redeploying, or briefly unreachable at the exact moment
+-- the event fires — which is precisely when it is most likely to be under load —
+-- an in-memory retry would lose the one event that mattered. Rows survive
+-- restarts and are retried until delivered.
+CREATE TABLE IF NOT EXISTS outbox (
+    id              INTEGER PRIMARY KEY,
+    event_id        TEXT    NOT NULL,
+    state           TEXT    NOT NULL,
+    payload_json    TEXT    NOT NULL,
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    last_error      TEXT,
+    next_attempt_at REAL    NOT NULL,
+    delivered_at    REAL,
+    created_at      REAL    NOT NULL,
+    -- One row per (event, state): a CONFIRMED and its later RETRACTED are two
+    -- deliveries, but a re-dispatch of the same state is not.
+    UNIQUE(event_id, state)
+);
+CREATE INDEX IF NOT EXISTS idx_outbox_pending
+    ON outbox(delivered_at, next_attempt_at);
+
 -- Web Push subscriptions from the PWA.
 CREATE TABLE IF NOT EXISTS subscriptions (
     endpoint   TEXT PRIMARY KEY,
