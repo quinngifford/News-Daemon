@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     )
 
     # --- core ---------------------------------------------------------
-    app_name: str = "Ticker"
+    app_name: str = "Trump Death Watcher"
     env: str = "dev"                       # dev | prod
     base_url: str = "http://127.0.0.1:8000"
 

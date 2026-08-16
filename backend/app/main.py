@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI):
     await fanout.stop()
 
 
-app = FastAPI(title="Ticker API", version="0.1.0", lifespan=lifespan,
+app = FastAPI(title="Trump Death Watcher API", version="0.1.0", lifespan=lifespan,
               docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 # The web app is served from the same origin, so CORS is only needed for the

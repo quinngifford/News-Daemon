@@ -1,4 +1,4 @@
-/* THE TICKER — client.
+/* TRUMP DEATH WATCHER — client.
  *
  * Three states driven by one fact: signed in? paid? → gate, subscribe, or paper.
  * Token in localStorage so the installed PWA survives a cold start; the native
@@ -25,7 +25,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g,
 
 const LONG_DATE = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
 
-let me = null, es = null, soundOn = false, audioCtx = null;
+let me = null, es = null, soundOn = false, audioCtx = null, clockTimer = null;
 const seen = new Set();
 
 // ───────────────────────── screens ─────────────────────────
@@ -197,6 +197,11 @@ function enterApp() {
   loadChart(7);
   initPush();
   setInterval(loadWire, 300000);
+  // Cleared first: enterApp() also runs on the return-from-Stripe path, and a
+  // second timer would tick the clock twice a second.
+  tickClock();
+  clearInterval(clockTimer);
+  clockTimer = setInterval(tickClock, 1000);
 }
 
 function stamp(text, cls) {
@@ -211,7 +216,7 @@ async function loadAlerts() {
     $('watchCount').textContent = `${events.length} dispatch${events.length === 1 ? '' : 'es'} on file`;
     if (!events.length) return;
     events.slice().reverse().forEach((e) => renderDispatch(e, false));
-    updateBoard(events[0]);
+    updateVitals(events[0]);
   } catch { /* empty on first run is normal */ }
 }
 
@@ -225,29 +230,48 @@ function connectStream() {
     if (a.type !== 'alert') return;
     if (seen.has(`${a.event_id}:${a.state}`)) return;
     renderDispatch(a, true);
-    updateBoard(a);
+    updateVitals(a);
     if (a.state === 'confirmed') chime(5);
     else if (a.state === 'likely') chime(2);
   };
 }
 
-function updateBoard(a) {
-  const board = $('board');
-  if (a.state === 'confirmed') {
-    board.classList.add('alerting');
-    $('boardState').textContent = 'Confirmed';
-    $('boardDetail').textContent = a.headline;
-  } else if (a.state === 'retracted') {
-    board.classList.remove('alerting');
-    $('boardState').textContent = 'Retracted';
-    $('boardDetail').textContent = a.headline;
-  } else {
-    $('boardState').textContent = a.state === 'likely' ? 'Developing' : 'All Quiet';
-    $('boardDetail').textContent = a.headline || 'No qualifying event detected.';
-  }
+// Detector state → the verdict on the board. `retracted` deliberately returns
+// to ALIVE: a report that collapsed is the entire reason the retraction
+// pipeline exists, and leaving the board reading DEAD would make it a liar.
+const VERDICT = {
+  confirmed: { status: 'dead', word: 'Dead',
+               fallback: 'Confirmed across independent sources.' },
+  likely:    { status: 'developing', word: 'Unconfirmed',
+               fallback: 'Reports are circulating and have not cleared corroboration.' },
+  retracted: { status: 'alive', word: 'Alive',
+               fallback: 'The earlier report collapsed and has been retracted.' },
+};
+const VERDICT_QUIET = {
+  status: 'alive', word: 'Alive',
+  fallback: 'No qualifying event detected. You will be told the instant one is.',
+};
+
+function updateVitals(a) {
+  const v = VERDICT[a?.state] || VERDICT_QUIET;
+  // One attribute drives the spine, dot, verdict colour and the dead-state
+  // inversion — see .vitals[data-status] in styles.css.
+  $('vitals').dataset.status = v.status;
+  $('vitalVerdict').textContent = v.word;
+  $('vitalDetail').textContent = a?.headline || v.fallback;
+
+  const n = (a?.payload?.evidence || []).length;
+  $('vitalConf').textContent = n
+    ? `Corroboration — ${n} source${n === 1 ? '' : 's'}`
+    : 'Awaiting corroboration';
+
   const when = new Date().toLocaleTimeString();
-  $('boardSince').textContent = `Last dispatch ${when}`;
+  $('vitalSince').textContent = `Last dispatch ${when}`;
   $('footStatus').textContent = `Last dispatch ${when}`;
+}
+
+function tickClock() {
+  $('vitalClock').textContent = new Date().toLocaleTimeString([], { hour12: false });
 }
 
 function renderDispatch(a, isNew) {

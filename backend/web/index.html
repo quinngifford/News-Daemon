@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>THE TICKER — Breaking News Dispatch</title>
+<title>TRUMP DEATH WATCHER — Continuous Vital Status</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#b22234">
 <meta name="description" content="Know first. Continuous watch on the wires.">
@@ -17,8 +17,8 @@
   <div class="gate-body">
     <div class="gate-card">
       <div class="nameplate">
-        <h1>The Ticker</h1>
-        <div class="sub">Est. 2026 &middot; Breaking News Dispatch</div>
+        <h1>Trump Death Watcher</h1>
+        <div class="sub">Est. 2026 &middot; Continuous Vital Status</div>
       </div>
       <div class="rule-double"></div>
       <div class="dateline-bar">
@@ -29,7 +29,7 @@
       <div class="stars">★ ★ ★</div>
 
       <p class="lede">
-        When it happens, seconds decide everything. The Ticker keeps a continuous
+        When it happens, seconds decide everything. Trump Death Watcher keeps a continuous
         watch on the wire services, the newsrooms, and the public record — and
         tells you the moment it is confirmed.
       </p>
@@ -108,7 +108,7 @@
 
   <header class="masthead">
     <div class="masthead-inner">
-      <div class="mh-title">The Ticker</div>
+      <div class="mh-title">Trump Death Watcher</div>
       <span id="connPill" class="stamp">connecting</span>
       <div class="mh-spacer"></div>
       <button id="pushBtn" class="btn btn-sm">Alerts</button>
@@ -123,19 +123,76 @@
       <span id="watchCount">—</span>
     </div>
 
-    <!-- STATUS -->
-    <div class="board" id="board">
-      <div class="terms" style="font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint)">
-        Standing Watch
+    <!-- ① VITAL STATUS — the headline verdict -->
+    <section class="vitals" id="vitals" data-status="alive"
+             aria-live="polite" aria-atomic="true">
+      <div class="v-rail">
+        <span class="v-dot" aria-hidden="true"></span>
+        <span class="v-rail-label">Vital Status &middot; Continuous Watch</span>
+        <span class="v-clock" id="vitalClock">—</span>
       </div>
-      <div class="state" id="boardState">All Quiet</div>
-      <div class="detail" id="boardDetail">
-        No qualifying event detected. You will be told the instant one is.
+
+      <div class="v-main">
+        <div class="v-subject">Donald J. Trump</div>
+        <div class="v-verdict" id="vitalVerdict">Alive</div>
+        <div class="v-underline" aria-hidden="true"></div>
+        <p class="v-detail" id="vitalDetail">
+          No qualifying event detected. You will be told the instant one is.
+        </p>
       </div>
-      <div class="since" id="boardSince"></div>
+
+      <div class="v-foot">
+        <span id="vitalSince">Watch established this session</span>
+        <span id="vitalConf">Awaiting first dispatch</span>
+      </div>
+    </section>
+
+    <!-- ② MARKET -->
+    <div class="kicker">Market</div>
+    <div class="quote-row">
+      <span class="q-sym">$Trump</span>
+      <span class="q-last" id="chartLast">—</span>
+      <span class="q-chg" id="chartChange"></span>
+      <span class="q-spacer"></span>
+      <span class="chips">
+        <button class="chip active" data-days="7">7D</button>
+        <button class="chip" data-days="30">30D</button>
+        <button class="chip" data-days="90">90D</button>
+      </span>
+    </div>
+    <div class="chart-box">
+      <svg id="chart" viewBox="0 0 600 220" preserveAspectRatio="none"
+           role="img" aria-label="Price chart"></svg>
+      <div id="chartTip" class="chart-tip" hidden></div>
+    </div>
+    <div class="src-note" id="chartSource"></div>
+
+    <!-- ③ SPONSORED — placeholder for your own coin.
+         Swap the whole #memecoinSlot block for a live chart widget or an ad
+         creative. The shape below matches the market block above so the
+         swap does not shift the page. -->
+    <div class="kicker">Sponsored</div>
+    <div class="promo" id="memecoinSlot">
+      <div class="promo-head">
+        <span class="promo-sym">$YOURCOIN</span>
+        <span class="promo-badge">Placeholder</span>
+        <span class="promo-chg">+0.00%</span>
+      </div>
+      <svg class="promo-spark" viewBox="0 0 600 140" preserveAspectRatio="none"
+           aria-hidden="true">
+        <polyline points="0,122 40,113 80,126 120,97 160,105 200,73 240,88
+                          280,59 320,67 360,41 400,53 440,31 480,45 520,23
+                          560,35 600,13"/>
+      </svg>
+      <div class="promo-note">
+        <strong>Your memecoin goes here.</strong>
+        Drop in a live chart widget or a static ad creative — replace
+        <code>#memecoinSlot</code> in <code>web/index.html</code>.
+        Recommended 1200&times;300.
+      </div>
     </div>
 
-    <!-- DISPATCHES -->
+    <!-- ④ DISPATCHES -->
     <div class="kicker">Dispatches</div>
     <h2 class="head">The Wire Room</h2>
     <div style="display:flex;justify-content:flex-end;margin-bottom:2px">
@@ -157,26 +214,6 @@
       </div>
     </div>
 
-    <!-- MARKET -->
-    <div class="kicker">Market</div>
-    <div class="quote-row">
-      <span class="q-sym">$Trump</span>
-      <span class="q-last" id="chartLast">—</span>
-      <span class="q-chg" id="chartChange"></span>
-      <span class="q-spacer"></span>
-      <span class="chips">
-        <button class="chip active" data-days="7">7D</button>
-        <button class="chip" data-days="30">30D</button>
-        <button class="chip" data-days="90">90D</button>
-      </span>
-    </div>
-    <div class="chart-box">
-      <svg id="chart" viewBox="0 0 600 220" preserveAspectRatio="none"
-           role="img" aria-label="Price chart"></svg>
-      <div id="chartTip" class="chart-tip" hidden></div>
-    </div>
-    <div class="src-note" id="chartSource"></div>
-
     <!-- WIRE -->
     <div class="kicker">From the Wire</div>
     <h2 class="head">Related Coverage</h2>
@@ -193,7 +230,7 @@
 
     <div class="stars">★ ★ ★</div>
     <div class="colophon">
-      The Ticker &middot; Published Continuously<br>
+      Trump Death Watcher &middot; Published Continuously<br>
       <span id="footStatus">—</span><br>
       Dispatches are informational only and are not financial advice.
     </div>

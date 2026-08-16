@@ -16,6 +16,10 @@
   --blue:     #3c3b6e;
   --rule:     #16130f;
   --hair:     #c9c0ad;
+  /* Verdict colours for the vital-status board. Muted rather than neon, so
+     they sit inside the letterpress palette instead of fighting it. */
+  --green:    #1f6f43;
+  --amber:    #a66e10;
 
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
            Georgia, "Times New Roman", serif;
@@ -187,21 +191,122 @@ ul.benefits li::before {
 .stamp.live { color: var(--blue); border-color: var(--blue); }
 .stamp.warn { color: var(--red); border-color: var(--red); }
 
-/* ── status board ───────────────────────────────────────────── */
-.board {
-  border: 3px double var(--ink); padding: 20px; text-align: center; margin-top: 20px;
+/* ── vital status board ─────────────────────────────────────── */
+/* One --status colour drives the spine, dot, verdict and underline, so a
+   state change is a single attribute flip on #vitals rather than a scatter
+   of class toggles. */
+.vitals {
+  --status: var(--green);
+  --status-wash: rgba(31,111,67,.06);
+  --status-glow: rgba(31,111,67,.42);
+  position: relative; margin-top: 20px; overflow: hidden;
+  border: 3px double var(--ink); background: var(--paper);
+  transition: background .45s ease, border-color .45s ease;
 }
-.board .state {
-  font-family: var(--condensed); font-size: clamp(34px, 9vw, 58px);
-  text-transform: uppercase; line-height: .95; margin: 4px 0 6px;
+.vitals[data-status="developing"] {
+  --status: var(--amber);
+  --status-wash: rgba(166,110,16,.09);
+  --status-glow: rgba(166,110,16,.42);
 }
-.board .detail { color: var(--ink-soft); font-size: 15px; }
-.board .since {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em;
-  text-transform: uppercase; color: var(--ink-faint); margin-top: 10px;
+.vitals[data-status="dead"] {
+  --status: var(--red);
+  --status-wash: rgba(178,34,52,.10);
+  --status-glow: rgba(178,34,52,.50);
 }
-.board.alerting { border-color: var(--red); background: rgba(178,34,52,.07); }
-.board.alerting .state { color: var(--red); }
+/* Accent spine down the left edge. */
+.vitals::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 6px;
+  background: var(--status); transition: background .45s ease;
+}
+
+.v-rail {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px 9px 20px; border-bottom: 1px solid var(--hair);
+  background: var(--status-wash);
+  font-family: var(--mono); font-size: 10px; letter-spacing: .24em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.v-rail-label { flex: 1; min-width: 0; }
+.v-clock { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.v-dot {
+  flex: none; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--status); animation: vpulse 2.4s ease-out infinite;
+}
+@keyframes vpulse {
+  0%   { box-shadow: 0 0 0 0 var(--status-glow); }
+  70%  { box-shadow: 0 0 0 12px rgba(0,0,0,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+}
+
+.v-main { padding: 28px 20px 22px; text-align: center; }
+.v-subject {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .3em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.v-verdict {
+  font-family: var(--condensed); text-transform: uppercase;
+  font-size: clamp(58px, 17vw, 132px); line-height: .86;
+  letter-spacing: -.02em; margin: 10px 0 0; color: var(--status);
+}
+/* "Unconfirmed" is far longer than "Alive"/"Dead" — hold it inside the column. */
+.vitals[data-status="developing"] .v-verdict { font-size: clamp(36px, 10vw, 76px); }
+.v-underline { width: 74px; height: 3px; margin: 16px auto 0; background: var(--status); }
+.v-detail {
+  margin: 15px auto 0; max-width: 46ch; font-size: 15.5px; color: var(--ink-soft);
+}
+.v-foot {
+  display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  padding: 10px 16px 10px 20px; border-top: 1px solid var(--hair);
+  font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+
+/* The one state that should stop you dead: invert the whole board. */
+.vitals[data-status="dead"] {
+  background: var(--ink); border-color: var(--red);
+  animation: vflash 1.1s ease-out 3;
+}
+.vitals[data-status="dead"] .v-rail,
+.vitals[data-status="dead"] .v-foot { border-color: #3a332b; background: transparent; }
+.vitals[data-status="dead"] .v-rail,
+.vitals[data-status="dead"] .v-foot,
+.vitals[data-status="dead"] .v-subject { color: #9c9282; }
+.vitals[data-status="dead"] .v-clock { color: #c8bfae; }
+.vitals[data-status="dead"] .v-detail { color: #e6dfd2; }
+@keyframes vflash { from { background: #45111a; } to { background: var(--ink); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .v-dot { animation: none; }
+  .vitals[data-status="dead"] { animation: none; }
+}
+
+/* ── sponsored slot (your coin) ─────────────────────────────── */
+.promo { border: 2px dashed var(--ink-faint); background: var(--paper-2); padding: 16px; }
+.promo-head {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.promo-sym {
+  font-family: var(--condensed); font-size: 26px; letter-spacing: .01em;
+  color: var(--ink); text-transform: uppercase;
+}
+.promo-badge {
+  border: 1px solid var(--ink-faint); color: var(--ink-faint);
+  padding: 2px 6px; font-size: 9.5px;
+}
+.promo-chg { margin-left: auto; color: var(--ink-faint); }
+.promo-spark { display: block; width: 100%; height: 120px; margin: 14px 0 12px; }
+.promo-spark polyline {
+  fill: none; stroke: var(--ink-faint); stroke-width: 2;
+  stroke-dasharray: 5 4; vector-effect: non-scaling-stroke;
+}
+.promo-note { font-size: 13px; line-height: 1.65; color: var(--ink-faint); }
+.promo-note strong {
+  display: block; color: var(--ink-soft); font-family: var(--mono);
+  font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
+  margin-bottom: 5px;
+}
 
 /* ── dispatches (alerts) ────────────────────────────────────── */
 .dispatch { padding: 16px 0; border-bottom: 1px solid var(--hair); }
@@ -297,5 +402,8 @@ ul.benefits li::before {
   .masthead-inner { padding: 8px 14px; gap: 8px; }
   .mh-title { font-size: 22px; }
   .d-head { font-size: 21px; }
-  .board { padding: 16px; }
+  .v-main { padding: 22px 14px 18px; }
+  .v-rail, .v-foot { padding-left: 14px; padding-right: 12px; letter-spacing: .16em; }
+  .v-foot { flex-direction: column; gap: 3px; }
+  .promo-spark { height: 92px; }
 }
