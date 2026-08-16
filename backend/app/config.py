@@ -87,6 +87,23 @@ class Settings(BaseSettings):
     news_cache_ttl_s: int = 300
     market_cache_ttl_s: int = 60
 
+    # --- our own coin -------------------------------------------------
+    # A Solana token has two addresses people quote interchangeably, and they
+    # are not the same thing:
+    #   mint — the token itself. What wallets and pump.fun URLs use.
+    #   pool — the liquidity pair it trades in. What Axiom links to, and the
+    #          only one chart APIs accept, because price only exists in a pool.
+    # Both below belong to the same token; keep them in step if you migrate
+    # liquidity to a new pool, or the chart will quietly track the old one.
+    memecoin_symbol: str = "TRUMPDEAD"
+    memecoin_name: str = "Trump Dead Coin"
+    memecoin_network: str = "solana"
+    memecoin_mint: str = "GqzL6CPTPTXewuTAeUnuFVpVAjyyAR6hLwKRnFQ4pump"
+    memecoin_pool: str = "FtKbVFZWka8qmJs2FQgYx5i2cmppBjvgxDhBWPL1T5Mt"
+    memecoin_url: str = (
+        "https://pump.fun/coin/GqzL6CPTPTXewuTAeUnuFVpVAjyyAR6hLwKRnFQ4pump"
+    )
+
     @property
     def is_prod(self) -> bool:
         return self.env.lower() in ("prod", "production")

@@ -36,17 +36,39 @@ function show(which) {
   $('appScreen').hidden = which !== 'app';
 }
 
+// Signed out is a valid way to read this site. The paper is public; only
+// delivery — push alerts, the live wire, the chime — is bought.
+const entitled = () => !!(me && me.entitled);
+
 async function boot() {
   const today = new Date().toLocaleDateString(undefined, LONG_DATE).toUpperCase();
   $('authDate').textContent = today;
   $('todayDate').textContent = today;
   loadBillingConfig();
 
-  if (!token()) return show('auth');
-  const r = await api('/api/auth/me');
-  if (!r.ok) { setToken(null); return show('auth'); }
-  me = await r.json();
-  me.entitled ? enterApp() : show('paywall');
+  if (token()) {
+    const r = await api('/api/auth/me');
+    if (r.ok) me = await r.json();
+    else setToken(null);          // expired or revoked: browse on as a visitor
+  }
+  enterApp();
+}
+
+/* Every entitlement-dependent control in one place. Called on boot and after
+   any sign-in, sign-out or purchase, so the chrome can never disagree with the
+   token we are actually holding. The server enforces all of this regardless —
+   see routers/events.py; this only decides what is worth offering. */
+function applyAccess() {
+  const paid = entitled();
+  $('pushBtn').hidden = !paid;
+  $('soundBtn').hidden = !paid;
+  $('testPushBtn').hidden = !paid;
+  $('unlockBtn').hidden = paid;
+  $('lockNotice').hidden = paid;
+  $('signInBtn').hidden = !!me;
+  $('logoutBtn').hidden = !me;
+  $('unlockBtn').textContent = me ? 'Unlock Alerts' : 'Get Alerts';
+  if (!paid) stamp('public view');
 }
 
 async function loadBillingConfig() {
@@ -98,6 +120,9 @@ $('authForm').onsubmit = async (e) => {
     }
     setToken(data.access_token);
     me = await (await api('/api/auth/me')).json();
+    // Refresh the chrome even when we land on the paywall — otherwise going
+    // back to the paper would still show the signed-out buttons.
+    applyAccess();
     me.entitled ? enterApp() : show('paywall');
   } catch (err) {
     $('authError').textContent = err.message;
@@ -110,6 +135,15 @@ $('authForm').onsubmit = async (e) => {
 const signOut = () => { setToken(null); if (es) es.close(); location.href = '/'; };
 $('logoutBtn').onclick = signOut;
 $('logoutFromPaywall').onclick = signOut;
+
+// The gates are destinations now, not a wall you wake up behind, so every one
+// of them needs a way back to the paper.
+$('signInBtn').onclick = () => show('auth');
+$('backFromAuth').onclick = () => show('app');
+$('backFromPaywall').onclick = () => show('app');
+const goUnlock = () => show(me ? 'paywall' : 'auth');
+$('unlockBtn').onclick = goUnlock;
+$('unlockBtn2').onclick = goUnlock;
 
 // ───────────────────────── purchase ─────────────────────────
 
@@ -191,11 +225,15 @@ $('devGrantBtn').onclick = async () => {
 
 function enterApp() {
   show('app');
+  applyAccess();
   loadAlerts();
-  connectStream();
   loadWire();
   loadChart(7);
-  initPush();
+  loadMemecoin('24h');
+  // Both of these are the paid product. Calling them while signed out would
+  // just collect 401/402s and light up the console for a visitor who is doing
+  // nothing wrong.
+  if (entitled()) { connectStream(); initPush(); }
   setInterval(loadWire, 300000);
   // Cleared first: enterApp() also runs on the return-from-Stripe path, and a
   // second timer would tick the clock twice a second.
@@ -403,88 +441,192 @@ async function loadWire() {
   }
 }
 
-// ───────────────────────── market ─────────────────────────
+// ───────────────────────── charts ─────────────────────────
 
-let chartData = [];
 const INK = '#16130f', RED = '#b22234', GREEN = '#17632f';
+const SUB = '₀₁₂₃₄₅₆₇₈₉';
 
-document.querySelectorAll('.chip').forEach((chip) => {
-  chip.onclick = () => {
-    document.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
-    chip.classList.add('active');
-    loadChart(Number(chip.dataset.days));
+/* A memecoin trades around 0.0000003. toFixed(4) renders that as "0.0000",
+   and exponent notation reads like a bug in a price field. 0.0₆295 is the
+   notation every Solana chart uses, and it stays honest at both ends of the
+   scale — so one formatter serves both the $8 token and the sub-cent one. */
+function fmtPrice(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  if (n >= 1)     return `$${n.toFixed(2)}`;
+  if (n >= 0.01)  return `$${n.toFixed(4)}`;
+  if (n >= 1e-4)  return `$${n.toFixed(6)}`;
+  const exp = Math.floor(Math.log10(n));            // -7 for 2.95e-7
+  const zeros = -exp - 1;                           // zeros after "0."
+  const digits = String(Math.round(n * 10 ** (-exp + 3))).slice(0, 4);
+  const marker = String(zeros).split('').map((d) => SUB[+d]).join('');
+  return `$0.0${marker}${digits}`;
+}
+
+const fmtPct = (v) => {
+  const n = Number(v || 0);
+  return `${n >= 0 ? '▲' : '▼'} ${Math.abs(n).toFixed(2)}%`;
+};
+
+/* One renderer, two charts. The pattern id has to be per-chart: two <pattern>
+   elements sharing id="hatch" in one document means the second chart silently
+   paints itself with the first chart's colour. */
+function makeChart(svgId, tipId, labelFor) {
+  let data = [];
+  const W = 600, H = 220, pad = 8;
+  const hatchId = `hatch-${svgId}`;
+
+  const geom = () => {
+    const vals = data.map((p) => p.c);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const span = (max - min) || Math.abs(max) || 1;
+    return {
+      x: (i) => (i / (data.length - 1 || 1)) * W,
+      y: (v) => H - pad - ((v - min) / span) * (H - pad * 2),
+    };
   };
+
+  function draw() {
+    const svg = $(svgId);
+    svg.onmousemove = svg.onmouseleave = null;
+    if (!data.length) { svg.innerHTML = ''; return; }
+
+    const { x, y } = geom();
+    const up = data[data.length - 1].c >= data[0].c;
+    const stroke = up ? GREEN : RED;
+    const baseline = `<line x1="0" y1="${H - pad}" x2="${W}" y2="${H - pad}"
+                            stroke="${INK}" stroke-width="1" opacity=".35"/>`;
+
+    // A token minutes old can have exactly one candle. A one-point path draws
+    // nothing at all, so mark the level instead of rendering an empty box.
+    if (data.length === 1) {
+      const yy = H / 2;
+      svg.innerHTML = `${baseline}
+        <line x1="0" y1="${yy}" x2="${W}" y2="${yy}" stroke="${stroke}"
+              stroke-width="2" stroke-dasharray="6 5" opacity=".65"/>
+        <circle cx="${W / 2}" cy="${yy}" r="5" fill="${stroke}"/>`;
+      return;
+    }
+
+    const line = data.map((p, i) =>
+      `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.c).toFixed(1)}`).join('');
+
+    // Hatched fill rather than a gradient — reads as engraving, not dashboard.
+    svg.innerHTML = `
+      <defs>
+        <pattern id="${hatchId}" width="6" height="6" patternUnits="userSpaceOnUse"
+                 patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke="${stroke}" stroke-width="1.6"
+                opacity=".22"/>
+        </pattern>
+      </defs>
+      ${baseline}
+      <path d="${line}L${W},${H - pad}L0,${H - pad}Z" fill="url(#${hatchId})"/>
+      <path d="${line}" fill="none" stroke="${stroke}" stroke-width="2.4"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <circle class="dot" r="4" fill="${stroke}" opacity="0"/>`;
+
+    svg.onmousemove = (ev) => {
+      const rect = svg.getBoundingClientRect();
+      const i = Math.max(0, Math.min(data.length - 1,
+        Math.round(((ev.clientX - rect.left) / rect.width) * (data.length - 1))));
+      const p = data[i];
+      if (!p) return;
+      const dot = svg.querySelector('.dot');
+      dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(p.c));
+      dot.setAttribute('opacity', '1');
+      const tip = $(tipId);
+      tip.hidden = false;
+      tip.textContent = `${fmtPrice(p.c)} — ${labelFor(p.t)}`;
+      tip.style.left = `${Math.min(ev.clientX - rect.left, rect.width - 150)}px`;
+      tip.style.top = `${Math.max(0, ev.clientY - rect.top - 32)}px`;
+    };
+    svg.onmouseleave = () => {
+      $(tipId).hidden = true;
+      svg.querySelector('.dot')?.setAttribute('opacity', '0');
+    };
+  }
+
+  return { set(d) { data = d || []; draw(); } };
+}
+
+const marketChart = makeChart('chart', 'chartTip',
+  (t) => new Date(t).toLocaleDateString());
+const memeChart = makeChart('memeChart', 'memeTip',
+  (t) => new Date(t).toLocaleString([], { month: 'short', day: 'numeric',
+                                          hour: '2-digit', minute: '2-digit' }));
+
+// Chips are scoped per chart — a bare `.chip` selector would clear the other
+// chart's active state and reload the wrong series.
+document.querySelectorAll('.chips').forEach((group) => {
+  group.querySelectorAll('.chip').forEach((chip) => {
+    chip.onclick = () => {
+      group.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      if (group.dataset.chart === 'meme') loadMemecoin(chip.dataset.window);
+      else loadChart(Number(chip.dataset.days));
+    };
+  });
 });
 
 async function loadChart(days) {
   try {
     const d = await (await api(`/api/market/TRUMP?days=${days}`)).json();
-    chartData = d.series || [];
-    $('chartLast').textContent = d.last ? `$${Number(d.last).toFixed(4)}` : '—';
+    $('chartLast').textContent = fmtPrice(d.last);
     const chg = Number(d.change_pct || 0);
     const el = $('chartChange');
-    el.textContent = `${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}%`;
+    el.textContent = fmtPct(chg);
     el.className = 'q-chg ' + (chg >= 0 ? 'up' : 'down');
     // Say plainly when the series is invented. A chart passing synthetic
     // numbers off as market data would be worse than no chart.
     $('chartSource').textContent = d.source === 'synthetic'
       ? 'Demo data — live quote unavailable'
       : `Source: ${d.source}`;
-    drawChart();
+    marketChart.set(d.series);
   } catch {
     $('chartSource').textContent = 'Quote unavailable';
   }
 }
 
-function drawChart() {
-  const svg = $('chart');
-  if (!chartData.length) { svg.innerHTML = ''; return; }
-  const W = 600, H = 220, pad = 8;
-  const vals = chartData.map((p) => p.c);
-  const min = Math.min(...vals), max = Math.max(...vals);
-  const span = (max - min) || 1;
-  const x = (i) => (i / (chartData.length - 1 || 1)) * W;
-  const y = (v) => H - pad - ((v - min) / span) * (H - pad * 2);
+async function loadMemecoin(window) {
+  const src = $('memeSource');
+  try {
+    const d = await (await api(`/api/memecoin?window=${encodeURIComponent(window)}`)).json();
+    $('memeSym').textContent = `$${d.symbol || 'COIN'}`;
+    if (d.url) { $('memeLink').href = d.url; }
 
-  const line = chartData.map((p, i) =>
-    `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.c).toFixed(1)}`).join('');
-  const up = vals[vals.length - 1] >= vals[0];
-  const stroke = up ? GREEN : RED;
+    // No data is a state we show honestly rather than paper over: this is a
+    // real token and an invented line could cost somebody money.
+    if (d.unavailable || !(d.series || []).length) {
+      memeChart.set([]);
+      $('memeLast').textContent = '—';
+      $('memeChange').textContent = '';
+      $('memeMeta').hidden = true;
+      src.textContent = d.unavailable === 'no trades in this window'
+        ? 'No trades in this window yet.'
+        : `Live price unavailable (${d.unavailable || 'no data'}).`;
+      return;
+    }
 
-  // Hatched fill rather than a gradient — reads as engraving, not a dashboard.
-  svg.innerHTML = `
-    <defs>
-      <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"
-               patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="6" stroke="${stroke}" stroke-width="1.6"
-              opacity=".22"/>
-      </pattern>
-    </defs>
-    <line x1="0" y1="${H - pad}" x2="${W}" y2="${H - pad}" stroke="${INK}"
-          stroke-width="1" opacity=".35"/>
-    <path d="${line}L${W},${H - pad}L0,${H - pad}Z" fill="url(#hatch)"/>
-    <path d="${line}" fill="none" stroke="${stroke}" stroke-width="2.4"
-          vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
-    <circle id="chartDot" r="4" fill="${stroke}" opacity="0"/>`;
+    $('memeLast').textContent = fmtPrice(d.last);
+    const chg = Number(d.change_pct || 0);
+    const el = $('memeChange');
+    el.textContent = fmtPct(chg);
+    el.className = 'q-chg ' + (chg >= 0 ? 'up' : 'down');
+    memeChart.set(d.series);
 
-  svg.onmousemove = (ev) => {
-    const rect = svg.getBoundingClientRect();
-    const i = Math.round(((ev.clientX - rect.left) / rect.width) * (chartData.length - 1));
-    const p = chartData[Math.max(0, Math.min(chartData.length - 1, i))];
-    if (!p) return;
-    const dot = svg.querySelector('#chartDot');
-    dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(p.c));
-    dot.setAttribute('opacity', '1');
-    const tip = $('chartTip');
-    tip.hidden = false;
-    tip.textContent = `$${p.c.toFixed(4)} — ${new Date(p.t).toLocaleDateString()}`;
-    tip.style.left = `${Math.min(ev.clientX - rect.left, rect.width - 150)}px`;
-    tip.style.top = `${Math.max(0, ev.clientY - rect.top - 32)}px`;
-  };
-  svg.onmouseleave = () => {
-    $('chartTip').hidden = true;
-    svg.querySelector('#chartDot')?.setAttribute('opacity', '0');
-  };
+    $('memeStats').textContent =
+      `High ${fmtPrice(d.high)} · Low ${fmtPrice(d.low)} · `
+      + `Volume $${Math.round(d.volume || 0).toLocaleString()}`;
+    $('memeMeta').hidden = false;
+    src.textContent = d.points === 1
+      ? 'Source: GeckoTerminal — one candle so far, too new to plot a line.'
+      : `Source: GeckoTerminal · ${d.points} candles`;
+  } catch {
+    memeChart.set([]);
+    src.textContent = 'Live price unavailable.';
+    $('memeMeta').hidden = true;
+  }
 }
 
 boot();

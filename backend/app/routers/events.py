@@ -1,4 +1,11 @@
-"""Event feed and the live stream. Paid users only."""
+"""Event feed and the live stream.
+
+The dividing line is *being told* versus *looking it up*. Reading the record —
+current status and past dispatches — is open to everyone, because a status page
+nobody can see is not a status page. Delivery is what you buy: the live stream
+and push notifications reach you the second something happens, and both require
+an entitlement.
+"""
 
 from __future__ import annotations
 
@@ -14,16 +21,16 @@ from app.db import get_db
 from app.fanout import fanout
 from app.models import Device, Event, User
 from app.routers.ingest import client_payload
-from app.security import current_user, require_entitled
+from app.security import current_user, current_user_optional, require_entitled
 
 router = APIRouter(prefix="/api", tags=["events"])
 
 
 @router.get("/events")
 def list_events(limit: int = 50, before: str | None = None,
-                user: User = Depends(require_entitled),
+                user: User | None = Depends(current_user_optional),
                 db: Session = Depends(get_db)) -> dict:
-    """Newest first, keyset-paginated.
+    """Newest first, keyset-paginated. Readable while signed out.
 
     Keyset rather than OFFSET: offset pagination degrades linearly as the table
     grows and can skip or repeat rows when new events arrive mid-scroll.
@@ -43,7 +50,11 @@ def list_events(limit: int = 50, before: str | None = None,
 
 @router.get("/events/stream")
 async def stream(request: Request, user: User = Depends(require_entitled)):
-    """SSE. Lowest-latency path: no vendor push infrastructure involved."""
+    """SSE. Lowest-latency path: no vendor push infrastructure involved.
+
+    Entitled only: on an open tab this *is* the notification channel, so it sits
+    on the paid side of the line even though /events itself is public.
+    """
     queue = fanout.subscribe()
 
     async def gen():
@@ -85,9 +96,14 @@ def push_public_key() -> dict:
 
 
 @router.post("/push/register", status_code=201)
-def register_device(body: dict, user: User = Depends(current_user),
+def register_device(body: dict, user: User = Depends(require_entitled),
                     db: Session = Depends(get_db)) -> dict:
-    """Register a push destination. Works for webpush now, APNs/FCM later."""
+    """Register a push destination. Works for webpush now, APNs/FCM later.
+
+    Entitled rather than merely signed in: registering a device is precisely the
+    act of subscribing to notifications, so this is where the paywall is really
+    enforced. Hiding the button in the UI would not enforce anything.
+    """
     kind = (body.get("kind") or "webpush").lower()
     token = body.get("token") or body.get("endpoint")
     if not token:
