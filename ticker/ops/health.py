@@ -16,6 +16,7 @@ import asyncio
 import logging
 import os
 import socket
+import time
 
 log = logging.getLogger(__name__)
 
@@ -45,13 +46,25 @@ class HealthMonitor:
         heartbeat_interval_s: float = 15.0,
         store=None,
         on_degraded=None,          # async callable(list[dict]) → alert the operator
+        confirm_cycles: int = 3,
+        realert_cooldown_s: float = 3600.0,
     ) -> None:
         self.adapters = adapters
         self.staleness_multiplier = staleness_multiplier
         self.heartbeat_interval_s = heartbeat_interval_s
         self.store = store
         self.on_degraded = on_degraded
+        # Edge-triggering alone is not enough. It suppresses a source that stays
+        # down, but a source that FLAPS presents a fresh edge every cycle, and
+        # every edge was a message. Two dampers, because they stop different
+        # things: confirm_cycles ignores blips shorter than a real outage, and
+        # realert_cooldown_s caps how often any one source may speak.
+        self.confirm_cycles = max(1, int(confirm_cycles))
+        self.realert_cooldown_s = realert_cooldown_s
         self._alarmed: set[str] = set()
+        self._stale_streak: dict[str, int] = {}
+        self._last_alert_at: dict[str, float] = {}
+        self._suppressed: dict[str, int] = {}
 
     def snapshot(self) -> list[dict]:
         return [a.health() for a in self.adapters]
@@ -68,14 +81,40 @@ class HealthMonitor:
                 )
             ]
 
-            # Edge-triggered: alarm on transition into staleness, and log
-            # recovery. Level-triggered would spam you every 15 seconds.
-            newly = [s for s in stale if s["id"] not in self._alarmed]
-            recovered = self._alarmed - {s["id"] for s in stale}
-            for sid in recovered:
-                log.info("source %s recovered", sid)
-            self._alarmed = {s["id"] for s in stale}
+            stale_ids = {s["id"] for s in stale}
+            now = time.monotonic()
 
+            # Sustained-staleness counter. A source must look dead for
+            # confirm_cycles consecutive checks before it is believed, which
+            # rides out reconnects without ever reporting them.
+            for sid in stale_ids:
+                self._stale_streak[sid] = self._stale_streak.get(sid, 0) + 1
+            for sid in list(self._stale_streak):
+                if sid not in stale_ids:
+                    del self._stale_streak[sid]
+
+            recovered = self._alarmed - stale_ids
+            for sid in recovered:
+                missed = self._suppressed.pop(sid, 0)
+                log.info("source %s recovered%s", sid,
+                         f" (suppressed {missed} repeat alert(s) while down)" if missed else "")
+            self._alarmed = set(stale_ids)
+
+            newly, muted = [], []
+            for s in stale:
+                sid = s["id"]
+                if self._stale_streak.get(sid, 0) != self.confirm_cycles:
+                    continue          # not yet confirmed, or already reported
+                last = self._last_alert_at.get(sid)
+                if last is not None and now - last < self.realert_cooldown_s:
+                    self._suppressed[sid] = self._suppressed.get(sid, 0) + 1
+                    muted.append(sid)
+                    continue
+                self._last_alert_at[sid] = now
+                newly.append(s)
+
+            if muted:
+                log.warning("SOURCES STILL DEGRADED (alert muted by cooldown): %s", muted)
             if newly:
                 log.error("SOURCES DEGRADED: %s", [s["id"] for s in newly])
                 if self.on_degraded:

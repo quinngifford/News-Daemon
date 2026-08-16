@@ -153,9 +153,15 @@ Interactive docs at `/api/docs`.
 ## Native mobile app
 
 The API is bearer-token based specifically so a native app can use it unchanged.
-When you build it: register devices with `kind: "apns"` or `"fcm"`, then
-implement `_send_apns` / `_send_fcm` in `app/push.py` and add them to `SENDERS`.
-Nothing else changes.
+
+**The iPhone app is built** — see [../ios/README.md](../ios/README.md). It is a
+SwiftUI port of `web/`, talks to these same endpoints, and registers devices as
+`kind: "apns"`. `_send_apns` in `app/push.py` delivers to it; set `APNS_KEY_ID`,
+`APNS_TEAM_ID`, `APNS_PRIVATE_KEY`, `APNS_TOPIC` and `APNS_USE_SANDBOX` (see
+`.env.example`) or registration succeeds and nothing is ever delivered.
+
+Android would follow the same path: register with `kind: "fcm"`, implement
+`_send_fcm`, add it to `SENDERS`. Nothing else changes.
 
 ## Art placeholders
 

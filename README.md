@@ -227,8 +227,12 @@ Not yet done:
   and tested against a mock receiver; set `TICKER_WEBHOOK_URL` /
   `TICKER_WEBHOOK_SECRET` once it does. Until then events queue in the outbox
   rather than being lost.
-- **The mobile app is not started.** The PWA installs to a home screen today;
-  a native app would add critical alerts that pierce silent mode.
+- **The iPhone app is written but has never been compiled** — see
+  [ios/README.md](ios/README.md). It is a native SwiftUI port of the web app
+  and delivers over APNs, which the backend now implements. Two things stand
+  between it and a phone: an Xcode build (it was written on Linux), and the
+  critical-alert entitlement, which Apple grants by application and is the
+  whole reason to prefer it over the PWA.
 - `reddit` / `hn` / `market_ws` adapters are configured but unimplemented.
   Reddit now needs OAuth (it 403s unauthenticated).
 - Second-region redundancy is untested. Note pay-per-use X allows only **one**

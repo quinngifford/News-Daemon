@@ -229,6 +229,8 @@ async def run(dry_run: bool = False, duration: float | None = None) -> None:
         heartbeat_interval_s=settings.get("ops", {}).get("heartbeat_interval_s", 15),
         store=store,
         on_degraded=on_degraded,
+        confirm_cycles=settings.get("ops", {}).get("confirm_cycles", 3),
+        realert_cooldown_s=settings.get("ops", {}).get("realert_cooldown_s", 3600),
     )
 
     tasks = [

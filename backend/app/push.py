@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -69,19 +70,128 @@ async def _send_webpush(device: Device, notification: dict) -> tuple[bool, str]:
         return False, f"{type(exc).__name__}: {exc}"
 
 
+# --- APNs (the native iOS app) ---------------------------------------------
+
+# Provider tokens, not certificates: one .p8 key signs for every app on the
+# team and never expires, where a certificate expires annually and takes the
+# alert channel down with it on the day nobody is watching.
+_apns_jwt: tuple[float, str] | None = None
+_apns_client: "httpx.AsyncClient | None" = None
+
+
+def _apns_auth_token(s) -> str:
+    """Signed provider token, refreshed on a timer.
+
+    Apple rejects a token older than an hour and throttles regeneration under
+    20 minutes, so it is cached in between — a fresh signature per device would
+    hit that limit during exactly the fan-out that matters.
+    """
+    global _apns_jwt
+    now = time.time()
+    if _apns_jwt and now - _apns_jwt[0] < 40 * 60:
+        return _apns_jwt[1]
+
+    import jwt as pyjwt
+
+    # Env vars cannot hold real newlines comfortably, so a key pasted with
+    # literal \n still works.
+    key = s.apns_private_key.replace("\\n", "\n").strip()
+    token = pyjwt.encode(
+        {"iss": s.apns_team_id, "iat": int(now)},
+        key,
+        algorithm="ES256",
+        headers={"kid": s.apns_key_id},
+    )
+    _apns_jwt = (now, token)
+    return token
+
+
+def _apns_http() -> "httpx.AsyncClient":
+    """One long-lived HTTP/2 client for the whole process.
+
+    APNs requires HTTP/2 and rewards connection reuse: a new client per device
+    pays a TLS handshake per push, which is the wrong trade in the one moment
+    this system exists for.
+    """
+    global _apns_client
+    if _apns_client is None:
+        import httpx
+
+        _apns_client = httpx.AsyncClient(http2=True, timeout=10.0)
+    return _apns_client
+
+
+async def _send_apns(device: Device, notification: dict) -> tuple[bool, str]:
+    s = get_settings()
+    if not (s.apns_private_key and s.apns_key_id and s.apns_team_id):
+        return False, "APNs not configured"
+
+    host = ("api.sandbox.push.apple.com" if s.apns_use_sandbox
+            else "api.push.apple.com")
+    confirmed = notification.get("state") == "confirmed"
+
+    payload = {
+        "aps": {
+            "alert": {"title": notification["title"], "body": notification["body"]},
+            "sound": "default",
+            # Time Sensitive breaks through Focus. Critical alerts — which also
+            # pierce the ring switch — need an entitlement Apple grants by
+            # application; see ios/README.md for the swap.
+            "interruption-level": "time-sensitive" if confirmed else "active",
+            "relevance-score": 1.0 if confirmed else 0.5,
+            "thread-id": notification.get("tag", "ticker"),
+        },
+        # Mirrors the Web Push body so the iOS handler and sw.js read the same
+        # fields.
+        "url": notification.get("url", ""),
+        "state": notification.get("state", ""),
+        "event_id": notification.get("event_id", ""),
+    }
+
+    headers = {
+        "authorization": f"bearer {_apns_auth_token(s)}",
+        "apns-topic": s.apns_topic,
+        "apns-push-type": "alert",
+        "apns-priority": "10",
+        "apns-expiration": str(int(time.time()) + 600),
+        # Same collapse id across states means a RETRACTED replaces the
+        # CONFIRMED it corrects rather than stacking beside it — the job the
+        # `tag` does on Web Push.
+        "apns-collapse-id": str(notification.get("tag", ""))[:64],
+    }
+
+    try:
+        r = await _apns_http().post(
+            f"https://{host}/3/device/{device.token}",
+            json=payload, headers=headers,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return False, f"{type(exc).__name__}: {exc}"
+
+    if r.status_code == 200:
+        return True, ""
+    try:
+        reason = r.json().get("reason", "")
+    except Exception:  # noqa: BLE001
+        reason = r.text[:160]
+    return False, f"apns {r.status_code}: {reason}"
+
+
 async def _send_stub(device: Device, notification: dict) -> tuple[bool, str]:
     return False, f"{device.kind} transport not implemented yet"
 
 
 SENDERS = {
     "webpush": _send_webpush,
-    "apns": _send_stub,      # native iOS app
+    "apns": _send_apns,      # native iOS app
     "fcm": _send_stub,       # native Android app
 }
 
 # Endpoints returning these are permanently gone; retrying them forever would
-# slow every future fan-out.
-DEAD_STATUSES = ("404", "410")
+# slow every future fan-out. The named APNs reasons are the same condition as
+# a 410 — the token belongs to an app that was deleted, or was never valid for
+# this environment — and are matched as substrings of the error string.
+DEAD_STATUSES = ("404", "410", "BadDeviceToken", "Unregistered")
 
 
 async def notify_all_entitled(db: Session, event: Event) -> int:

@@ -83,6 +83,26 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:ops@example.com"
 
+    # --- APNs (the native iOS app) ------------------------------------
+    # Token-based auth: one .p8 from Apple Developer → Keys → "Apple Push
+    # Notifications service (APNs)". It never expires, unlike a certificate,
+    # which is a channel that would otherwise go dark once a year unattended.
+    #
+    # apns_private_key holds the PEM contents, not a path — Render and systemd
+    # both pass secrets as environment variables, and a file that has to exist
+    # on disk is one more thing to get wrong on deploy. Literal \n in the value
+    # is unescaped before signing.
+    apns_key_id: str = ""
+    apns_team_id: str = ""
+    apns_private_key: str = ""
+    # Must equal PRODUCT_BUNDLE_IDENTIFIER in ios/tools/generate_project.py.
+    apns_topic: str = "com.trumpdeathwatcher.app"
+    # True for builds signed with a development profile (aps-environment =
+    # development in the .entitlements), False for TestFlight and the App
+    # Store. Sending to the wrong host fails with BadDeviceToken, so this flips
+    # when you archive.
+    apns_use_sandbox: bool = True
+
     # --- content ------------------------------------------------------
     news_feed_urls: str = (
         "https://feeds.bbci.co.uk/news/world/rss.xml,"

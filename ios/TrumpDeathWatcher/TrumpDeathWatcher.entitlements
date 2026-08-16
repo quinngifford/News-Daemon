@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Xcode rewrites this to "production" when archiving with a distribution
+	     profile; the value here is what a development build gets. It must match
+	     APNS_USE_SANDBOX on the backend, or every push silently 400s. -->
+	<key>aps-environment</key>
+	<string>development</string>
+
+	<!-- Time Sensitive lets a confirmed dispatch break through Focus. It needs
+	     no approval from Apple, unlike critical alerts (which pierce silent
+	     mode and require an entitlement request) — see ios/README.md.
+
+	     If signing fails with "provisioning profile does not include the
+	     com.apple.developer.usernotifications.time-sensitive entitlement",
+	     either enable the capability on the App ID or delete this key. -->
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
+</dict>
+</plist>

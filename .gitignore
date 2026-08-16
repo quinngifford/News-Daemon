@@ -21,3 +21,10 @@ __pycache__/
 # Editor / OS
 .DS_Store
 *.swp
+
+# Xcode — per-user state, never shared. The shared scheme under
+# xcshareddata/ is deliberately kept.
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
+ios/build/
+ios/DerivedData/

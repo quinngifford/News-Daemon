@@ -33,6 +33,9 @@ class SourceAdapter(ABC):
     tier: Tier = Tier.SOCIAL
     #: if no item arrives within staleness_multiplier * this, the watchdog alarms
     expected_cadence_s: float = 3600.0
+    #: a session lasting at least this long counts as healthy, so the restart
+    #: after it starts from a 1s backoff rather than inheriting the old one
+    healthy_session_s: float = 30.0
 
     def __init__(self, config: dict) -> None:
         self.config = config
@@ -60,6 +63,7 @@ class SourceAdapter(ABC):
         An adapter crash must degrade one source, never take down the daemon.
         """
         while True:
+            started = time.monotonic()
             try:
                 await self._run(self._wrap(emit))
                 # A clean return from a streaming adapter is itself suspicious.
@@ -69,6 +73,19 @@ class SourceAdapter(ABC):
             except Exception as exc:  # noqa: BLE001 — deliberate catch-all
                 self.last_error = f"{type(exc).__name__}: {exc}"
                 log.warning("source %s failed: %s", self.id, self.last_error)
+
+            # A session that stayed up this long was healthy; whatever ended it
+            # is a fresh incident, not a continuing one.
+            #
+            # Backoff used to reset only in _wrap(), i.e. only when an item was
+            # EMITTED. On a high-volume stream we filter hard — the Wikimedia
+            # firehose delivers constantly but matches our needles rarely — so
+            # the reset almost never ran and _backoff stayed pinned at the 60s
+            # ceiling. Wikimedia recycles its HTTP/2 connections every ~15
+            # minutes, and each perfectly ordinary recycle then cost a full 60s
+            # blind window on the source whose whole job is being fast.
+            if time.monotonic() - started >= self.healthy_session_s:
+                self._backoff = 1.0
             await asyncio.sleep(self._backoff)
             self._backoff = min(self._backoff * 2, 60.0)
 

@@ -79,6 +79,13 @@ retain_days = 90
 # monitor, because you will trust it.
 staleness_multiplier = 4.0
 heartbeat_interval_s = 15
+# Consecutive stale checks before a source is believed dead. At the 15s
+# heartbeat this means ~45s of continuous silence, which rides out an ordinary
+# stream reconnect instead of paging about it.
+confirm_cycles = 3
+# A source that is genuinely down stays down. Say so once, then at most once an
+# hour, so one broken feed cannot bury the next one that breaks.
+realert_cooldown_s = 3600
 
 [ops.canary]
 # Daily end-to-end drill: inject a fabricated death for a fictional target,

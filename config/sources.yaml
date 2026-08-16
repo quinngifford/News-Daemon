@@ -23,7 +23,11 @@ sources:
     adapter: wikimedia_sse
     tier: 4
     url: "https://stream.wikimedia.org/v2/stream/recentchange"
-    expected_cadence_s: 5          # firehose is never quiet: a great liveness canary
+    # Was 5, i.e. alarm after 20s of quiet. The firehose really is that busy,
+    # but Wikimedia recycles the HTTP/2 connection every ~15 minutes and the
+    # reconnect gap alone tripped it every time. 30 (→ 120s) still detects a
+    # genuinely dead stream inside two minutes.
+    expected_cadence_s: 30
     wikis: ["enwiki", "wikidatawiki"]
     notes: >
       VERIFIED: 3 events received in under 15s. An edit adding a death date, or

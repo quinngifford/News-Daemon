@@ -1,0 +1,392 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B9243A920649E842CD20158A /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946F78C3B2D31757C6BFB7E5 /* AppConfig.swift */; };
+		9F8F4DA2DC8590ADEDA2EE64 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 962978E7691C644CF4D0DEB7 /* AppState.swift */; };
+		E89AA1A232E8B0C249BCDBAD /* TrumpDeathWatcherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C997B33DB74D9AE56D673B93 /* TrumpDeathWatcherApp.swift */; };
+		1ADAD314E0833AB9CCF2A2BB /* Chime.swift in Sources */ = {isa = PBXBuildFile; fileRef = D42B5E43011A83824A411952 /* Chime.swift */; };
+		81CDDCDDF199C1782FF8FE5B /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13C7250E40CBA1F1ED6F5E40 /* Components.swift */; };
+		17746272FA659D625601E1D2 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = 980B06E96EFF1FC361C2472B /* Format.swift */; };
+		1EFF655BD49F7CD3790DE433 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D96FAF4B2D85412E504BF50 /* Theme.swift */; };
+		064A099D47E3AF08CEA9BD05 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4778BB2BB9F1FE7FBA797EE8 /* APIClient.swift */; };
+		59F048DCC3373D79739DFB5F /* EventStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B12CD7B5478D00D8D0D7220 /* EventStream.swift */; };
+		FCBB0700709D6BAABAD27585 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38400F907D69B8014067DC9B /* Models.swift */; };
+		BAE2B59E7EBE1BB834C3D153 /* TokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DA3684E7B8A5D99C07DBF8D /* TokenStore.swift */; };
+		F9FB40BB5AFAF8DFCA2F4615 /* PushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C295740D68396486940CBA7 /* PushManager.swift */; };
+		6094062BEF89D69A2C7789BC /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACEEF4DE5EA0B6637FB99DA9 /* AuthView.swift */; };
+		895B6E004DB513D2FD90E6E6 /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54DF34BA57775A4498B044B /* ChartView.swift */; };
+		14D7471E1737190C527F7763 /* CheckoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482424647AACDA3D94ABA61B /* CheckoutView.swift */; };
+		FEC41583A74B7398F686DE34 /* PaperSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8734A8D4C458358622F232A4 /* PaperSections.swift */; };
+		47D82906441D86FC8EEABEEF /* PaperView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B60FEC204E1EE96A874657A /* PaperView.swift */; };
+		463BF85451EEEA08E7F01A71 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54959FC5ED487F980CEA90C3 /* PaywallView.swift */; };
+		CA63F677038931DDBC1F5AF6 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AF197F0E4AFFBDDAA40121B /* RootView.swift */; };
+		F7189103D316557D8C4FBDAC /* VitalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236451E8554E76B605ACC6AA /* VitalsView.swift */; };
+		2BD1A376A72DD810CCA92FEB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 351F35085ABA4C3E10EC5B8F /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		34DBD31C6E2B3D7C8FF37989 /* TrumpDeathWatcher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TrumpDeathWatcher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		946F78C3B2D31757C6BFB7E5 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		962978E7691C644CF4D0DEB7 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		C997B33DB74D9AE56D673B93 /* TrumpDeathWatcherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrumpDeathWatcherApp.swift; sourceTree = "<group>"; };
+		D42B5E43011A83824A411952 /* Chime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chime.swift; sourceTree = "<group>"; };
+		13C7250E40CBA1F1ED6F5E40 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		980B06E96EFF1FC361C2472B /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
+		7D96FAF4B2D85412E504BF50 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		4778BB2BB9F1FE7FBA797EE8 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		6B12CD7B5478D00D8D0D7220 /* EventStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStream.swift; sourceTree = "<group>"; };
+		38400F907D69B8014067DC9B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		8DA3684E7B8A5D99C07DBF8D /* TokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStore.swift; sourceTree = "<group>"; };
+		7C295740D68396486940CBA7 /* PushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushManager.swift; sourceTree = "<group>"; };
+		ACEEF4DE5EA0B6637FB99DA9 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		C54DF34BA57775A4498B044B /* ChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
+		482424647AACDA3D94ABA61B /* CheckoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckoutView.swift; sourceTree = "<group>"; };
+		8734A8D4C458358622F232A4 /* PaperSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperSections.swift; sourceTree = "<group>"; };
+		9B60FEC204E1EE96A874657A /* PaperView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperView.swift; sourceTree = "<group>"; };
+		54959FC5ED487F980CEA90C3 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		8AF197F0E4AFFBDDAA40121B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		236451E8554E76B605ACC6AA /* VitalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsView.swift; sourceTree = "<group>"; };
+		351F35085ABA4C3E10EC5B8F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B55CD085BC915517D31791A9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DC54EB60FA90E2CD96FCF44 /* TrumpDeathWatcher.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TrumpDeathWatcher.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		424153ED3CD079DB4DB459AF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D1D0524B025E57AFFF263442 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				946F78C3B2D31757C6BFB7E5 /* AppConfig.swift */,
+				962978E7691C644CF4D0DEB7 /* AppState.swift */,
+				C997B33DB74D9AE56D673B93 /* TrumpDeathWatcherApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		E45F76C2D80FAD483876517A /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				D42B5E43011A83824A411952 /* Chime.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		5FDB91368D7DDA2418B6CB65 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				13C7250E40CBA1F1ED6F5E40 /* Components.swift */,
+				980B06E96EFF1FC361C2472B /* Format.swift */,
+				7D96FAF4B2D85412E504BF50 /* Theme.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		0A75AAB0BC0A6616013AD6E7 /* Net */ = {
+			isa = PBXGroup;
+			children = (
+				4778BB2BB9F1FE7FBA797EE8 /* APIClient.swift */,
+				6B12CD7B5478D00D8D0D7220 /* EventStream.swift */,
+				38400F907D69B8014067DC9B /* Models.swift */,
+				8DA3684E7B8A5D99C07DBF8D /* TokenStore.swift */,
+			);
+			path = Net;
+			sourceTree = "<group>";
+		};
+		3C957D6E7D30E4725F69F72D /* Push */ = {
+			isa = PBXGroup;
+			children = (
+				7C295740D68396486940CBA7 /* PushManager.swift */,
+			);
+			path = Push;
+			sourceTree = "<group>";
+		};
+		38DF21AEF4612506D6BE5CBE /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				ACEEF4DE5EA0B6637FB99DA9 /* AuthView.swift */,
+				C54DF34BA57775A4498B044B /* ChartView.swift */,
+				482424647AACDA3D94ABA61B /* CheckoutView.swift */,
+				8734A8D4C458358622F232A4 /* PaperSections.swift */,
+				9B60FEC204E1EE96A874657A /* PaperView.swift */,
+				54959FC5ED487F980CEA90C3 /* PaywallView.swift */,
+				8AF197F0E4AFFBDDAA40121B /* RootView.swift */,
+				236451E8554E76B605ACC6AA /* VitalsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		149B4427C854D8E2BA84D4B5 /* TrumpDeathWatcher */ = {
+			isa = PBXGroup;
+			children = (
+				D1D0524B025E57AFFF263442 /* App */,
+				E45F76C2D80FAD483876517A /* Audio */,
+				5FDB91368D7DDA2418B6CB65 /* Design */,
+				0A75AAB0BC0A6616013AD6E7 /* Net */,
+				3C957D6E7D30E4725F69F72D /* Push */,
+				38DF21AEF4612506D6BE5CBE /* Views */,
+				351F35085ABA4C3E10EC5B8F /* Assets.xcassets */,
+				B55CD085BC915517D31791A9 /* Info.plist */,
+				1DC54EB60FA90E2CD96FCF44 /* TrumpDeathWatcher.entitlements */,
+			);
+			path = TrumpDeathWatcher;
+			sourceTree = "<group>";
+		};
+		2F3A6B1E78F896718625FF06 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				34DBD31C6E2B3D7C8FF37989 /* TrumpDeathWatcher.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BB5D8E872B7D45C0EFD70B64 = {
+			isa = PBXGroup;
+			children = (
+				149B4427C854D8E2BA84D4B5 /* TrumpDeathWatcher */,
+				2F3A6B1E78F896718625FF06 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D7043DEFD6D9A83654975D37 /* TrumpDeathWatcher */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 354589B28580510B6EC24620 /* Build configuration list for PBXNativeTarget "TrumpDeathWatcher" */;
+			buildPhases = (
+				7A70D71C385290AF96BF1031 /* Sources */,
+				424153ED3CD079DB4DB459AF /* Frameworks */,
+				285BB1C1430063331E9F5DD0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TrumpDeathWatcher;
+			productName = TrumpDeathWatcher;
+			productReference = 34DBD31C6E2B3D7C8FF37989 /* TrumpDeathWatcher.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B107154B5EA383495EC83989 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					D7043DEFD6D9A83654975D37 = {
+						CreatedOnToolsVersion = 16.0;
+						SystemCapabilities = {
+							com.apple.Push = {
+								enabled = 1;
+							};
+						};
+					};
+				};
+			};
+			buildConfigurationList = 1F4E3D13C2320EDA50221924 /* Build configuration list for PBXProject "TrumpDeathWatcher" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BB5D8E872B7D45C0EFD70B64;
+			productRefGroup = 2F3A6B1E78F896718625FF06 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D7043DEFD6D9A83654975D37 /* TrumpDeathWatcher */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		285BB1C1430063331E9F5DD0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2BD1A376A72DD810CCA92FEB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7A70D71C385290AF96BF1031 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B9243A920649E842CD20158A /* AppConfig.swift in Sources */,
+				9F8F4DA2DC8590ADEDA2EE64 /* AppState.swift in Sources */,
+				E89AA1A232E8B0C249BCDBAD /* TrumpDeathWatcherApp.swift in Sources */,
+				1ADAD314E0833AB9CCF2A2BB /* Chime.swift in Sources */,
+				81CDDCDDF199C1782FF8FE5B /* Components.swift in Sources */,
+				17746272FA659D625601E1D2 /* Format.swift in Sources */,
+				1EFF655BD49F7CD3790DE433 /* Theme.swift in Sources */,
+				064A099D47E3AF08CEA9BD05 /* APIClient.swift in Sources */,
+				59F048DCC3373D79739DFB5F /* EventStream.swift in Sources */,
+				FCBB0700709D6BAABAD27585 /* Models.swift in Sources */,
+				BAE2B59E7EBE1BB834C3D153 /* TokenStore.swift in Sources */,
+				F9FB40BB5AFAF8DFCA2F4615 /* PushManager.swift in Sources */,
+				6094062BEF89D69A2C7789BC /* AuthView.swift in Sources */,
+				895B6E004DB513D2FD90E6E6 /* ChartView.swift in Sources */,
+				14D7471E1737190C527F7763 /* CheckoutView.swift in Sources */,
+				FEC41583A74B7398F686DE34 /* PaperSections.swift in Sources */,
+				47D82906441D86FC8EEABEEF /* PaperView.swift in Sources */,
+				463BF85451EEEA08E7F01A71 /* PaywallView.swift in Sources */,
+				CA63F677038931DDBC1F5AF6 /* RootView.swift in Sources */,
+				F7189103D316557D8C4FBDAC /* VitalsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		35D0387E8A36F09B2F1874B0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		19B69E46700831D730A5F9AF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		ADCEC035C6F98F8FBC76DFAE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TrumpDeathWatcher/TrumpDeathWatcher.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TrumpDeathWatcher/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.trumpdeathwatcher.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		2C83AA7168667E76071B68EB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TrumpDeathWatcher/TrumpDeathWatcher.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TrumpDeathWatcher/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.trumpdeathwatcher.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1F4E3D13C2320EDA50221924 /* Build configuration list for PBXProject "TrumpDeathWatcher" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				35D0387E8A36F09B2F1874B0 /* Debug */,
+				19B69E46700831D730A5F9AF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		354589B28580510B6EC24620 /* Build configuration list for PBXNativeTarget "TrumpDeathWatcher" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ADCEC035C6F98F8FBC76DFAE /* Debug */,
+				2C83AA7168667E76071B68EB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B107154B5EA383495EC83989 /* Project object */;
+}
