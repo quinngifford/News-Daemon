@@ -164,21 +164,10 @@
       record — and tells you the moment a report is corroborated, not the
       moment a rumour starts.
     </p>
-    <p class="lede-cost">
-      <strong>Why it costs what it costs.</strong>
-      Speed is the entire product, and speed is the expensive part. A detector
-      runs around the clock on its own server, holding an open streaming
-      connection to the social firehose and polling the wires without pause.
-      Paid API access at that tier is the largest line item by far, and it bills
-      every month whether or not anything happens. On top of it sit the hosting,
-      the push infrastructure, and the corroboration step that checks a report
-      against independent sources before it wakes you at four in the morning.
-      Those are standing monthly costs, covered by a single payment of
-      <span id="ledePrice">$49.99</span> — charged once, never renewed.
-    </p>
-
-    <!-- Shown only to visitors who cannot receive alerts. The status board
-         above is free; what is behind the paywall is being *told*. -->
+    <!-- The ask comes before the justification: someone already sold on it
+         should not have to read a cost breakdown to find the button. Both this
+         and #ledeCost below are hidden once the visitor is entitled — see
+         applyAccess() in app.js. -->
     <div class="lock" id="lockNotice" hidden>
       <div class="lock-kicker">Notifications</div>
       <div class="lock-head">Get told the moment it happens</div>
@@ -192,6 +181,16 @@
       </button>
       <div class="buyers" id="buyerCount" hidden></div>
     </div>
+
+    <p class="lede-cost" id="ledeCost" hidden>
+      <strong>Why do I charge money for this service?.</strong>
+      I pay out of pocket for early  access to insider information from secondary sources (Hint: Truth Social). Keeping this service running 24/7
+      incurs many costs as well. A detector runs around the clock on its own server, holding an open streaming connection to the social firehose
+      and polling the wires without pause. Paid API access is required, and it bills every month whether or not anything happens. On top of it sits
+      the hosting, the push infrastructure, and the corroboration step that checks a report against independent sources and AI reasoning before it
+      wakes you at four in the morning. Those are standing monthly costs, covered by a single payment of
+      <span id="ledePrice">$49.99</span> — charged once, never renewed.
+    </p>
 
     <!-- ② MARKET -->
     <div class="kicker">Market</div>
@@ -213,8 +212,8 @@
     </div>
     <div class="src-note" id="chartSource"></div>
 
-    <!-- ③ OUR COIN — live from the Solana pool, never synthesised. -->
-    <div class="kicker">Our Coin</div>
+    <!-- ③ MY OWN  MEMECOIN — live from the Solana pool, never synthesised. -->
+    <div class="kicker">MY MEMECOIN</div>
     <div class="quote-row">
       <span class="q-sym" id="memeSym">$TRUMPDEAD</span>
       <span class="q-last" id="memeLast">—</span>
@@ -238,7 +237,11 @@
       <a id="memeLink" href="#" target="_blank" rel="noopener">View on pump.fun</a>
     </div>
 
-    <!-- ④ DISPATCHES -->
+    <!-- ④ DISPATCHES — temporarily off.
+         app.js tolerates this being absent: renderDispatch() bails when
+         #alertList is missing and applyAccess() skips absent controls, so
+         /api/events is still fetched and the vital-status board above still
+         updates. Uncomment to bring the wire room back; nothing else to change.
     <div class="kicker">Dispatches</div>
     <h2 class="head">The Wire Room</h2>
     <div style="display:flex;justify-content:flex-end;margin-bottom:2px">
@@ -247,6 +250,7 @@
     <div id="alertList">
       <div class="empty">No dispatches. That is the ordinary state of things.</div>
     </div>
+    -->
 
     <!-- ART — hero -->
     <!--

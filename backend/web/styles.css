@@ -325,10 +325,13 @@ ul.benefits li::before {
 .buyers::before { content: "★ "; color: var(--red); }
 
 /* ── front-page lede ────────────────────────────────────────── */
+/* Full column width. A 62ch cap plus a left indent made this the only block on
+   the page that lined up with neither margin — short on the right, inset on the
+   left. The rule moved to the top so both edges sit flush with everything else
+   while the section stays visually set apart. */
 .lede-cost {
   font-size: 15.5px; line-height: 1.62; color: var(--ink-soft);
-  border-left: 3px solid var(--hair); padding-left: 16px; margin: 18px 0 0;
-  max-width: 62ch;
+  border-top: 1px solid var(--hair); padding-top: 16px; margin: 22px 0 0;
 }
 .lede-cost strong {
   display: block; font-family: var(--mono); font-size: 10.5px;

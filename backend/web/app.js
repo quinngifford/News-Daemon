@@ -58,16 +58,24 @@ async function boot() {
    any sign-in, sign-out or purchase, so the chrome can never disagree with the
    token we are actually holding. The server enforces all of this regardless —
    see routers/events.py; this only decides what is worth offering. */
+// Sections get commented out of index.html from time to time, so nothing here
+// may assume an element exists. A missing id is a layout decision, not a bug.
+const setHidden = (id, hidden) => { const el = $(id); if (el) el.hidden = hidden; };
+
 function applyAccess() {
   const paid = entitled();
-  $('pushBtn').hidden = !paid;
-  $('soundBtn').hidden = !paid;
-  $('testPushBtn').hidden = !paid;
-  $('unlockBtn').hidden = paid;
-  $('lockNotice').hidden = paid;
-  $('signInBtn').hidden = !!me;
-  $('logoutBtn').hidden = !me;
-  $('unlockBtn').textContent = me ? 'Unlock Alerts' : 'Get Alerts';
+  setHidden('pushBtn', !paid);
+  setHidden('soundBtn', !paid);
+  setHidden('testPushBtn', !paid);
+  setHidden('signInBtn', !!me);
+  setHidden('logoutBtn', !me);
+  // The pitch and its justification both retire once there is nothing left to
+  // sell: a buyer who already paid should not still be reading the sales copy.
+  setHidden('unlockBtn', paid);
+  setHidden('lockNotice', paid);
+  setHidden('ledeCost', paid);
+  const unlock = $('unlockBtn');
+  if (unlock) unlock.textContent = me ? 'Unlock Alerts' : 'Get Alerts';
   if (!paid) stamp('public view');
 }
 
@@ -325,6 +333,7 @@ function tickClock() {
 function renderDispatch(a, isNew) {
   seen.add(`${a.event_id}:${a.state}`);
   const list = $('alertList');
+  if (!list) return;          // dispatches section commented out; vitals still update
   list.querySelector('.empty')?.remove();
 
   const when = a.received_at ? new Date(a.received_at) : new Date();
@@ -426,7 +435,10 @@ async function initPush() {
   };
 }
 
-$('testPushBtn').onclick = async () => {
+// Guarded because this runs at load: an unconditional .onclick on a missing
+// element throws, and that would take the whole script down with it.
+const testBtn = $('testPushBtn');
+if (testBtn) testBtn.onclick = async () => {
   const d = await (await api('/api/push/test', { method: 'POST' })).json();
   alert(d.ok ? `Test dispatch sent to ${d.sent} device(s).`
              : `Nothing sent: ${d.error || (d.errors || []).join('; ') || 'unknown'}`);
