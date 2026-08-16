@@ -69,6 +69,10 @@ class Settings(BaseSettings):
     # env=prod, so it cannot become an accidental free-for-all in production.
     allow_dev_grant: bool = True
 
+    # "N people have unlocked alerts" stays hidden until the real count reaches
+    # this, so an early, truthful number never reads as a warning sign.
+    social_proof_min: int = 25
+
     # --- ingest from the detector -------------------------------------
     # Shared secret with the VPS. Must equal TICKER_WEBHOOK_SECRET there.
     ingest_secret: str = ""

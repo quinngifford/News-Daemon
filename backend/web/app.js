@@ -82,6 +82,16 @@ async function loadBillingConfig() {
     if (cfg.price_display) {
       $('priceHint').textContent = cfg.price_display;
       $('priceBig').textContent = cfg.price_display;
+      $('lockPrice').textContent = cfg.price_display;
+      $('ledePrice').textContent = cfg.price_display;
+    }
+    // null means "not enough sales to be worth saying" — the server decides,
+    // so the client has no threshold policy of its own to drift out of step.
+    const sold = cfg.purchase_count;
+    const line = sold ? `${sold.toLocaleString()} people have unlocked alerts` : '';
+    for (const id of ['buyerCount', 'buyerCountPaywall']) {
+      $(id).textContent = line;
+      $(id).hidden = !line;
     }
     $('devGrantBtn').hidden = cfg.configured !== false;
   } catch { /* cosmetic only — never block boot */ }

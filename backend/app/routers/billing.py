@@ -11,7 +11,7 @@ import logging
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -24,7 +24,8 @@ router = APIRouter(prefix="/api/billing", tags=["billing"])
 
 
 @router.get("/config")
-def billing_config(user: User | None = Depends(current_user_optional)) -> dict:
+def billing_config(user: User | None = Depends(current_user_optional),
+                   db: Session = Depends(get_db)) -> dict:
     """Price and publishable key. Readable while logged OUT.
 
     Was `Depends(current_user)`, which 401'd for anyone not signed in — i.e. on
@@ -33,7 +34,16 @@ def billing_config(user: User | None = Depends(current_user_optional)) -> dict:
     dev-grant button.
     """
     s = get_settings()
+    # Counted from the purchases table, never a decorative constant. This number
+    # is a factual claim about other people's behaviour that a buyer relies on,
+    # so it has to be the real one. Below the threshold we show nothing at all
+    # rather than announce "4 people" — honest and unhelpful is still a choice,
+    # so the choice is to stay quiet until the number speaks for itself.
+    sold = db.scalar(
+        select(func.count()).select_from(Purchase).where(Purchase.status == "paid")
+    ) or 0
     return {
+        "purchase_count": sold if sold >= s.social_proof_min else None,
         "price_cents": s.price_cents,
         "price_display": f"${s.price_cents / 100:,.2f}",
         "currency": s.currency,

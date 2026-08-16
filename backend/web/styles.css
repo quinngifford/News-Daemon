@@ -280,6 +280,22 @@ ul.benefits li::before {
   .vitals[data-status="dead"] { animation: none; }
 }
 
+/* ── artwork ────────────────────────────────────────────────── */
+/* A bare <img> renders at its intrinsic size — these files are ~1600px wide,
+   so they shot straight past the 720px column and pushed the whole page into
+   a horizontal scroll. width:100% caps them to the column; height:auto keeps
+   the aspect ratio instead of squashing them. The width/height attributes in
+   the markup are what stop the page jumping as they load. */
+.art-fig { margin: 30px 0 0; }
+.art-fig img {
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--rule);
+}
+/* The emblem is nearly square: at full column width it would be a 720px-tall
+   wall of logo. Cap it and centre it instead. */
+.art-emblem { display: grid; place-items: center; }
+.art-emblem img { width: min(300px, 68%); border: 0; }
+
 /* ── coin metadata line ─────────────────────────────────────── */
 .coin-meta {
   display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
@@ -302,6 +318,23 @@ ul.benefits li::before {
   line-height: .98; margin: 7px 0 8px;
 }
 .lock-body { color: var(--ink-soft); font-size: 15px; margin: 0 0 15px; max-width: 54ch; }
+.buyers {
+  margin-top: 11px; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint);
+}
+.buyers::before { content: "★ "; color: var(--red); }
+
+/* ── front-page lede ────────────────────────────────────────── */
+.lede-cost {
+  font-size: 15.5px; line-height: 1.62; color: var(--ink-soft);
+  border-left: 3px solid var(--hair); padding-left: 16px; margin: 18px 0 0;
+  max-width: 62ch;
+}
+.lede-cost strong {
+  display: block; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .22em; text-transform: uppercase; color: var(--ink);
+  margin-bottom: 6px;
+}
 
 /* ── dispatches (alerts) ────────────────────────────────────── */
 .dispatch { padding: 16px 0; border-bottom: 1px solid var(--hair); }

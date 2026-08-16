@@ -82,6 +82,7 @@
         <div class="amt" id="priceBig">$49.99</div>
         <div class="terms">Paid once &middot; Yours for good</div>
       </div>
+      <div class="buyers" id="buyerCountPaywall" hidden></div>
 
       <ul class="benefits">
         <li>Instant dispatch the moment an event is confirmed</li>
@@ -153,6 +154,29 @@
       </div>
     </section>
 
+    <!-- WHAT THIS IS — the front-page lede. It previously lived only inside the
+         sign-in gate, which stopped being the landing page when the paper went
+         public, so in practice nobody ever saw it. -->
+    <div class="kicker">What This Is</div>
+    <p class="lede">
+      When it happens, seconds decide everything. Trump Death Watcher keeps a
+      continuous watch on the wire services, the newsrooms, and the public
+      record — and tells you the moment a report is corroborated, not the
+      moment a rumour starts.
+    </p>
+    <p class="lede-cost">
+      <strong>Why it costs what it costs.</strong>
+      Speed is the entire product, and speed is the expensive part. A detector
+      runs around the clock on its own server, holding an open streaming
+      connection to the social firehose and polling the wires without pause.
+      Paid API access at that tier is the largest line item by far, and it bills
+      every month whether or not anything happens. On top of it sit the hosting,
+      the push infrastructure, and the corroboration step that checks a report
+      against independent sources before it wakes you at four in the morning.
+      Those are standing monthly costs, covered by a single payment of
+      <span id="ledePrice">$49.99</span> — charged once, never renewed.
+    </p>
+
     <!-- Shown only to visitors who cannot receive alerts. The status board
          above is free; what is behind the paywall is being *told*. -->
     <div class="lock" id="lockNotice" hidden>
@@ -166,6 +190,7 @@
       <button id="unlockBtn2" class="btn btn-red">
         Unlock alerts — <span id="lockPrice">$49.99</span>
       </button>
+      <div class="buyers" id="buyerCount" hidden></div>
     </div>
 
     <!-- ② MARKET -->
@@ -236,7 +261,10 @@
       </div>
     </div>
     -->
-    <img src="banner.png" alt="Banner">
+    <figure class="art-fig">
+      <img src="banner.png" alt="Trump Death Watcher banner"
+           width="1672" height="941" loading="lazy" decoding="async">
+    </figure>
 
     <!-- WIRE -->
     <div class="kicker">From the Wire</div>
@@ -253,7 +281,10 @@
       </div>
     </div>
     -->
-    <img src="logo.png" alt="picture">
+    <figure class="art-fig art-emblem">
+      <img src="logo.png" alt="Trump Death Watcher emblem"
+           width="1616" height="1695" loading="lazy" decoding="async">
+    </figure>
 
     <div class="stars">★ ★ ★</div>
     <div class="colophon">
